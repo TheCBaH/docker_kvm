@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: 0 1 * * MON
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [16.04, 18.04, 20.04]
+        os: [ubuntu]
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: kvm.image
+      run: |
+        set -x
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        image=$(make image.print)
+        IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$GITHUB_REPOSITORY/$image
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+        old_id=''
+        if docker pull $IMAGE_ID; then
+          old_id=$(docker image inspect $IMAGE_ID --format "{{.ID}}")
+        fi
+        make kvm_image DOCKER_BUILD_OPTIONS="--cache-from=$IMAGE_ID"
+        new_id=$(docker image inspect $image --format "{{.ID}}")
+        if [ "$old_id" != "$new_id" ]; then
+          docker tag $image $IMAGE_ID:latest
+          docker push $IMAGE_ID:latest || true
+        fi
+        rm -rf ~/.docker
+        make kvm_run CMD='bash -ceux "id"'
+    - uses: actions/cache@v2
+      id: cache_base
+      with:
+        path: data/base
+        key: base-${{ matrix.os }}-${{ matrix.version }}-${{ hashFiles('Makefile') }}
+    - uses: actions/cache@v2
+      id: cache_img
+      with:
+        path: data/img
+        key: img-${{ matrix.os }}-${{ matrix.version }}-${{ hashFiles('Makefile', 'kvm.sh') }}
+    - name: kvm.init
+      if: steps.cache_base.outputs.cache-hit != 'true' || steps.cache_img.outputs.cache-hit != 'true'
+      run: |
+        make ${{ matrix.os }}-${{ matrix.version }}.init
+    - name: kvm.ssh.test
+      run: |
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
+    - name: kvm.ssh.start
+      run: |
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTIONS='--dryrun'
+    - name: kvm.ssh
+      run: |
+        time ssh $(./get_ssh_options) id
+        time ssh $(./get_ssh_options) sudo id
+        ssh $(./get_ssh_options) cat /etc/issue
+        ssh $(./get_ssh_options) ls -al /mnt
+        ssh $(./get_ssh_options) df -h
+    - name: kvm.ssh.stop
+      run: |
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
