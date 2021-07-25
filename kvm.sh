@@ -200,6 +200,7 @@ cmd_start_ssh() {
         tail -1 $log
         if grep -q 'login:' $log; then
             fail=''
+            sleep 5
             break
         fi
         sleep 1
@@ -208,17 +209,19 @@ cmd_start_ssh() {
         kill ${pid:-} || true
         exit $fail
     fi
-    cat >$ssh_flag  <<_EOF_
+    cat >$ssh_flag.tmp  <<_EOF_
 -oBatchmode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i$(readlink -f $id) -p $port localhost
 _EOF_
+    mv $ssh_flag.tmp $ssh_flag
 }
 
-
 cmd_stop_ssh() {
+    touch $ssh_flag.done
+    rm -f $ssh_flag.started
     rm -f $ssh_flag
     pid=$(cat $pidf)
     fail=1
-    for n in $(seq 60); do
+    for n in $(seq 120); do
         if [ "$(expr $n % 10 )" -eq 1 ]; then
             socat - UNIX-CONNECT:/tmp/qemu.mon << CMD || true
 system_powerdown
@@ -271,8 +274,9 @@ case "$cmd" in
         ;;
     start_ssh)
         rm -f $ssh_flag $ssh_flag.done
+        touch $ssh_flag.started
         if [ -n "$wait" ]; then
-            trap "touch $ssh_flag.done; echo 'Stopping Linux.... '; cmd_stop_ssh; exit 0" EXIT
+            trap "echo 'Stopping Linux.... '; cmd_stop_ssh; exit 0" EXIT
         fi
         cmd_start_ssh
         if [ -n "$wait" ]; then

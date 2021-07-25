@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+#set -x
+this=$(dirname $0)
+cmd=$1
+shift
+options=$this/data/var/ssh_options
+while : ; do
+    if [ -f $options ]; then
+        exec $cmd $(cat $options) "$@"
+    fi
+    sleep 1
+    if [ ! -f $options.started ]; then
+        echo 'VM is not started' >&2
+        exit 1
+    fi
+    if [ -f $options.done ]; then
+        echo 'VM is exited' >&2
+        exit 1
+    fi
+done

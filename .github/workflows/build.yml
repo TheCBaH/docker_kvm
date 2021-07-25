@@ -60,11 +60,11 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTIONS='--dryrun'
     - name: kvm.ssh
       run: |
-        time ssh $(./get_ssh_options) id
-        time ssh $(./get_ssh_options) sudo id
-        ssh $(./get_ssh_options) cat /etc/issue
-        ssh $(./get_ssh_options) ls -al /mnt
-        ssh $(./get_ssh_options) df -h
+        time ./kvm_ssh ssh id
+        time ./kvm_ssh ssh sudo id
+        ./kvm_ssh ssh cat /etc/issue
+        ./kvm_ssh ssh ls -al /mnt
+        ./kvm_ssh ssh df -h
     - name: kvm.ssh.stop
       run: |
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
