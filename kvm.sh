@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 set -o pipefail
-#set -x
+set -x
 
 cmd="init"
 os_ver="ubuntu-20.04"
@@ -58,6 +58,8 @@ while test $# -gt 0; do
             ;;
     esac
 done
+ssh_port=$port
+ssh_host=localhost
 mkdir -p $img_dir $var_dir
 boot=$img_dir/${os_ver}-boot.img
 data=$img_dir/${os_ver}-data.img
@@ -116,26 +118,75 @@ _YAML_
     echo | ssh-keygen -P ''
     echo "$(cat $id.pub)" >/home/$user/.ssh/authorized_keys
     chmod 0600 /home/$user/.ssh/authorized_keys
+    _USER_
 _YAML_
     cat >>$udata <<_YAML_
+    chpasswd <<_PASSWD_
+    root:secret
+    $user:$user
+    _PASSWD_
     echo DONE
 _YAML_
 
 }
 
+do_tap() {
+    br=kvm_br0
+    iface=$(ip route show|awk -c '/default/{print $5;exit(0)}')
+    iface_ip=$(ip addr show $iface|awk -F'[/ ]+' '/inet/{print $3;exit 0}')
+    iface_mask=$(ip route show|awk -F'[/ ]+' "/dev $iface proto/{print \$2;exit 0}")
+    case ${iface_mask} in
+        24) iface_mask="255.255.255.0";;
+        16) iface_mask="255.255.0.0";;
+        *) iface_mask="255.255.255.0";;
+    esac
+    router=$(ip route show|awk -c '/default/{print $3;exit(0)}')
+    dns=$(awk -c '/nameserver/{print $2;exit 0}'</etc/resolv.conf)
+    ssh_port=22
+    ssh_host=$iface_ip
+    sudo bash -eu <<_EOF_
+        ip addr flush dev $iface
+        ip link add $br type bridge
+        ip link set dev $iface master $br
+        ip link set dev $iface up
+        ip link set dev $br up
+        setcap cap_net_admin=eip $1
+_EOF_
+    cat >/tmp/udhcp.conf <<_EOF_
+start $iface_ip
+end $iface_ip
+interface $br
+max_leases 1
+option subnet $iface_mask
+option router $router
+option dns $dns
+_EOF_
+    sudo bash -eu <<_EOF_
+        mkdir -p /var/lib/misc/
+        touch /var/lib/misc/udhcpd.leases
+        udhcpd -I 10.0.0.1 -f /tmp/udhcp.conf &
+_EOF_
+}
+
 do_qemu() {
     mode=$1;shift
+    qemu=$(which qemu-system-x86_64)
     qemu_options="
     -m 2G \
     -smp 2 \
     -nographic \
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
-    -netdev user,id=net0,hostfwd=tcp::$port-:22 \
     -drive if=virtio,format=qcow2,file=$boot \
     -drive if=virtio,format=qcow2,file=$data \
     -virtfs local,id=data_dev,path=data,security_model=none,mount_tag=data_mount \
     "
+    if [ -w /dev/net/tun ]; then
+        do_tap $qemu
+        qemu_options="${qemu_options} -netdev tap,id=net0,script=tap/up,downscript=tap/down"
+    else
+        qemu_options="${qemu_options} -netdev user,id=net0,hostfwd=tcp::$port-:22"
+    fi
     if [ -r /dev/kvm ]; then
         qemu_options="${qemu_options} -accel kvm"
     fi
@@ -151,10 +202,10 @@ do_qemu() {
     fi
 
     if [ $mode = background ]; then
-        qemu-system-x86_64 ${qemu_options:-} $@ </dev/null >$log &
+        $qemu ${qemu_options:-} $@ </dev/null >$log &
         qemu_job=$!
     else
-        qemu-system-x86_64 ${qemu_options:-} $@
+        $qemu ${qemu_options:-} $@
     fi
 }
 
@@ -203,7 +254,7 @@ cmd_start_ssh() {
         tail -1 $log
         if grep -q 'login:' $log; then
             fail=''
-            sleep 5
+            sleep 3
             break
         fi
         sleep 1
@@ -213,7 +264,7 @@ cmd_start_ssh() {
         exit $fail
     fi
     cat >$ssh_flag.tmp  <<_EOF_
--oBatchmode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i$(readlink -f $id) -p $port localhost
+-oBatchmode=yes -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i$(readlink -f $id) -p $ssh_port $ssh_host
 _EOF_
     mv $ssh_flag.tmp $ssh_flag
 }
@@ -249,7 +300,7 @@ CMD
 cmd_ssh() {
     cmd_start_ssh
 
-    SSH_OPTIONS="$(cat $var_dir/ssh_options)"
+    SSH_OPTIONS="$(cat $ssh_flag)"
     ssh_fail=1
     if ssh ${SSH_OPTIONS} $@ ; then
         ssh_fail=0

@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+#set -x
+sudo ip link set dev $1 up
+sudo ip link set dev $1 master kvm_br0

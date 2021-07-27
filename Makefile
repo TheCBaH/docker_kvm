@@ -36,27 +36,41 @@ kvm_image:
 .PRECIOUS: data/base/ubuntu-18.04-minimal-cloudimg-amd64.img
 .PRECIOUS: data/base/ubuntu-16.04-minimal-cloudimg-amd64.img
 
+SSH_PORT=9022
+USE_TAP=y
+
+NETWORK_OPTIONS.USER=--publish ${SSH_PORT}:${SSH_PORT}
+NETWORK_OPTIONS.TAP=--device /dev/net/tun --cap-add NET_ADMIN
+
+NETWORK_OPTIONS=$(if $(filter y,${USE_TAP}),${NETWORK_OPTIONS.TAP},${NETWORK_OPTIONS.USER})
+
+USERSPEC=env HOME=/home/${USER} chroot --userspec=${UID}:${GID} --groups=kvm,sudo,root --skip-chdir /
+
 kvm_run:
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 --user ${UID}:$(or ${KVM},${GID}) ${image} ${CMD}
+	 ${NETWORK_OPTIONS} ${image}\
+	 ${USERSPEC} ${CMD}
 
 %.img: data/base/%-minimal-cloudimg-amd64.img
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) init'
+
+%.run: data/base/%-minimal-cloudimg-amd64.img
+	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) run'
 
 %.init: %.img
 	echo OK
 
 %.ssh.test:
-	${MAKE} kvm_run CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ssh id'
-
-SSH_PORT=9022
+	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ssh id'
 
 %.ssh.start:
 	rm -f data/ssh_options*
 	docker run --rm --init --detach --name ${USER}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}\
-	 $(if $(wildcard /dev/kvm), --device /dev/kvm) --publish ${SSH_PORT}:${SSH_PORT} \
-	 --user ${UID}:$(or ${KVM},${GID}) ${image} ./kvm.sh ${SSH_START_OPTIONS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
+	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
+	 ${NETWORK_OPTIONS} ${image}\
+	 ${USERSPEC}\
+	 ./kvm.sh ${SSH_START_OPTIONS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
 
 %.ssh.log:
 	docker logs ${USER}_$(basename $@)
