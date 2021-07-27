@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 set -o pipefail
-set -x
+#set -x
 
 cmd="init"
 os_ver="ubuntu-20.04"
@@ -70,11 +70,15 @@ do_id() {
 }
 
 do_cloud() {
-    echo 'instance-id: kvm-docker' >/tmp/metadata.yml
-    echo 'local-hostname: kvm-docker' >>/tmp/metadata.yml
-
-    cat >/tmp/user.yml <<_EOF_
-#cloud-config' >/tmp/user.yml
+    meta=$img_dir/cloud/meta-data
+    udata=$img_dir/cloud/user-data
+    mkdir -p $(dirname $meta)
+    cat >$meta <<_YAML_
+instance-id: kvm-docker
+local-hostname: kvm-docker
+_YAML_
+    cat >$udata <<_YAML_
+#cloud-config
 ssh_authorized_keys:
   - $(cat $id.pub)
 power_state:
@@ -86,16 +90,16 @@ runcmd:
     set -eux
     mkdir -p $data_mnt;echo LABEL=KVM-DATA $data_mnt auto defaults 0 2 >>/etc/fstab
     mkdir -p $data_mnt;echo data_mount /mnt 9p trans=virtio 0 2 >>/etc/fstab
-_EOF_
+_YAML_
     if [ -n "$swap_size" ]; then
-        cat >>/tmp/user.yml <<_EOF_
+        cat >>$udata <<_YAML_
     echo LABEL=KVM-SWAP swap swap defaults 0 0 >>/etc/fstab
-_EOF_
+_YAML_
     fi
     user=$(id -un)
     group=$(id -gn)
     gid=$(id -g)
-    cat >>/tmp/user.yml <<_EOF_
+    cat >>$udata <<_YAML_
     gname=\$(getent group $group 2>/dev/null|cut -f1 -d:)
     if [ -n "\${gname}" ]; then
         groupmod --new-name \${gname}_old \${gname}
@@ -112,12 +116,11 @@ _EOF_
     echo | ssh-keygen -P ''
     echo "$(cat $id.pub)" >/home/$user/.ssh/authorized_keys
     chmod 0600 /home/$user/.ssh/authorized_keys
-_EOF_
-    cat >>/tmp/user.yml <<_EOF_
+_YAML_
+    cat >>$udata <<_YAML_
     echo DONE
-_EOF_
+_YAML_
 
-   cloud-localds $img_dir/user.img /tmp/user.yml /tmp/metadata.yml
 }
 
 do_qemu() {
@@ -139,8 +142,8 @@ do_qemu() {
     if [ -n "$dryrun" ]; then
         qemu_options="${qemu_options} -snapshot"
     fi
-    if [ $cmd = "init" -o "$os_ver"="ubuntu-16.04" ]; then
-        qemu_options="${qemu_options} -drive if=virtio,format=raw,file=$img_dir/user.img"
+    if [ $cmd = "init" -o "$os_ver" = "ubuntu-16.04" ]; then
+        qemu_options="${qemu_options} -drive if=virtio,read-only=on,driver=vvfat,file=fat:$img_dir/cloud,label=cidata"
     fi
 
     if [ -n "$swap_size" ]; then
@@ -196,7 +199,7 @@ cmd_start_ssh() {
     pid=$(cat $pidf)
     kill -0 $pid
     fail=1
-    for n in $(seq 120); do
+    for n in $(seq 60); do
         tail -1 $log
         if grep -q 'login:' $log; then
             fail=''

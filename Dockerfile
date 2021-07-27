@@ -19,7 +19,6 @@ RUN set -eux; \
 RUN set -eux;\
     apt-get update;\
     env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends\
- cloud-image-utils\
  libguestfs-tools\
  linux-image-kvm\
  openssh-client\
