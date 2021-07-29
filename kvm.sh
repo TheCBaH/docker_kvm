@@ -244,7 +244,6 @@ cmd_start_ssh() {
      -serial stdio \
      -pidfile /tmp/qemu.pid \
      -monitor unix:/tmp/qemu.mon,server,nowait \
-     -monitor unix:/tmp/qemu.mon,server,nowait \
 
     sleep 1
     pid=$(cat $pidf)

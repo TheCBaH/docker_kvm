@@ -44,13 +44,12 @@ NETWORK_OPTIONS.TAP=--device /dev/net/tun --cap-add NET_ADMIN
 
 NETWORK_OPTIONS=$(if $(filter y,${USE_TAP}),${NETWORK_OPTIONS.TAP},${NETWORK_OPTIONS.USER})
 
-USERSPEC=env HOME=/home/${USER} chroot --userspec=${UID}:${GID} --groups=kvm,sudo,root --skip-chdir /
+USERSPEC=--user=${UID}:${GID} $(addprefix --group-add=, kvm sudo)
 
 kvm_run:
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 ${NETWORK_OPTIONS} ${image}\
-	 ${USERSPEC} ${CMD}
+	 ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
 
 %.img: data/base/%-minimal-cloudimg-amd64.img
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) init'
@@ -68,12 +67,14 @@ kvm_run:
 	rm -f data/ssh_options*
 	docker run --rm --init --detach --name ${USER}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 ${NETWORK_OPTIONS} ${image}\
-	 ${USERSPEC}\
+	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
 	 ./kvm.sh ${SSH_START_OPTIONS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
 
 %.ssh.log:
 	docker logs ${USER}_$(basename $@)
+
+%.ssh.qemu-log:
+	docker exec ${USER}_$(basename $@) cat /tmp/qemu.log
 
 %.ssh.stop:
 	docker stop -t 60 ${USER}_$(basename $@)
