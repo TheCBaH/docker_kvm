@@ -22,10 +22,20 @@ data/base/%-minimal-cloudimg-amd64.img:
 data/base/ubuntu-16.04-minimal-cloudimg-amd64.img:
 	./kvm.sh download $@ 'https://cloud-images.ubuntu.com/minimal/releases/xenial/release/ubuntu-16.04-minimal-cloudimg-amd64-uefi1.img'
 
+data/base/ubuntu-20.04.2-live-server-amd64.iso:
+	./kvm.sh download $@ 'https://releases.ubuntu.com/20.04/$(notdir $@)'
+
+image_name=${USER}_$(basename $(1))
+
 kvm_image:
-	docker build --tag ${image} ${DOCKER_BUILD_OPTIONS} -f Dockerfile\
-	 --build-arg http_proxy\
-	 --build-arg UBUNTU_VER=latest\
+	docker build --tag ${image} ${DOCKER_BUILD_OPTS} -f Dockerfile\
+	 --build-arg OS_VER=latest\
+	 --build-arg USERINFO=${USER}:${UID}:${GROUP}:${GID}:${KVM}\
+	 .
+
+%.image: Dockerfile-%
+	docker build --tag $(call image_name,$@) ${DOCKER_BUILD_OPTS} -f $^\
+	 --build-arg OS_VER=latest\
 	 --build-arg USERINFO=${USER}:${UID}:${GROUP}:${GID}:${KVM}\
 	 .
 
@@ -35,21 +45,37 @@ kvm_image:
 .PRECIOUS: data/base/ubuntu-20.04-minimal-cloudimg-amd64.img
 .PRECIOUS: data/base/ubuntu-18.04-minimal-cloudimg-amd64.img
 .PRECIOUS: data/base/ubuntu-16.04-minimal-cloudimg-amd64.img
+.PRECIOUS: data/base/ubuntu-20.04.2-live-server-amd64.iso
 
 SSH_PORT=9022
-USE_TAP=y
+USE_TAP=n
+PORTS=5900
 
 NETWORK_OPTIONS.USER=--publish ${SSH_PORT}:${SSH_PORT}
 NETWORK_OPTIONS.TAP=--device /dev/net/tun --cap-add NET_ADMIN
 
-NETWORK_OPTIONS=$(if $(filter y,${USE_TAP}),${NETWORK_OPTIONS.TAP},${NETWORK_OPTIONS.USER})
-
-USERSPEC=--user=${UID}:${GID} $(addprefix --group-add=, kvm sudo)
+NETWORK_OPTIONS=$(if $(filter y,${USE_TAP}),${NETWORK_OPTIONS.TAP},${NETWORK_OPTIONS.USER}) $(foreach p,${PORTS},--publish=$p:$p)
+USERSPEC=--user=${UID}:${GID} $(if ${NO_KVM},,$(addprefix --group-add=, kvm sudo))
 
 kvm_run:
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
+
+%.image_run:
+	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}\
+	 ${DOCKER_RUN_OPTS}\
+	 $(if ${http_proxy},-e http_proxy=${http_proxy})\
+	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
+	 ${USERSPEC} ${NETWORK_OPTIONS} $(call image_name, $@) ${CMD}
+
+ubuntu-autoinstall: data/base/ubuntu-20.04.2-live-server-amd64.iso
+	# --user-data ubuntu-autoinstall-generator/user-data.example --all-in-one
+	${MAKE} $@.image_run CMD='bash ubuntu-autoinstall-generator/ubuntu-autoinstall-generator.sh --no-verify\
+	 --source $^ --destination data/img/$(basename $(notdir $^))-autoinstall.iso'
+
+ubuntu-autoinstall.cfg:
+	${MAKE} $(basename $@).image_run CMD='./kvm.sh --debug ${AUTO_INSTALL_OPTS} $(if ${http_proxy},--proxy ${http_proxy}) auto-install-cfg'
 
 %.img: data/base/%-minimal-cloudimg-amd64.img
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) init'

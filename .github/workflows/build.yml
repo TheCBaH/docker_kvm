@@ -8,7 +8,65 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  live-server:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: autoinstall.image
+      run: |
+        set -x
+        make ubuntu-autoinstall.image
+        make NO_KVM=y ubuntu-autoinstall.cfg
+        make NO_KVM=y ubuntu-autoinstall
+    - name: kvm.image
+      run: |
+        set -x
+        image=$(make image.print)
+        IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$GITHUB_REPOSITORY/$image
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+        make DOCKER_BUILD_OPTS="--cache-from=$IMAGE_ID" kvm_image
+    - name: autoinstall
+      timeout-minutes: 120
+      run: |
+        set -x
+        make kvm_run CMD='./kvm.sh --os ubuntu-20.04 --debug auto-install'
+        ls -alh data/img
+    - name: server.boot.test
+      run: |
+        make kvm_run CMD='./kvm.sh --boot data/img/ubuntu-20.04-rootfs.img --debug --dryrun test'
+    - name: server.ssh.test
+      timeout-minutes: 4
+      run: |
+        make kvm_run CMD='./kvm.sh --boot data/img/ubuntu-20.04-rootfs.img --debug --dryrun ssh id'
+    - name: kvm.ssh.start
+      run: |
+        set -x
+        make ubuntu-live-20.04.ssh.start SSH_START_OPTS='--boot data/img/ubuntu-20.04-rootfs.img --dryrun'
+        sleep 10
+        make ubuntu-live-20.04.ssh.log
+    - name: kvm.ssh
+      run: |
+        set -x
+        time ./kvm_ssh ssh id
+        time ./kvm_ssh ssh sudo id
+        ./kvm_ssh ssh cat /etc/issue
+        ./kvm_ssh ssh ls -al /mnt
+        ./kvm_ssh ssh df -h
+    - name: kvm.ssh.stop
+      run: |
+        make ubuntu-live-20.04.ssh.stop
+    - name: failed-images
+      uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: ubuntu-autoinstal
+        path: |
+          data/img
+          data/var
+  cloud-img:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -28,7 +86,7 @@ jobs:
         if docker pull $IMAGE_ID; then
           old_id=$(docker image inspect $IMAGE_ID --format "{{.ID}}")
         fi
-        make kvm_image DOCKER_BUILD_OPTIONS="--cache-from=$IMAGE_ID"
+        make kvm_image DOCKER_BUILD_OPTS="--cache-from=$IMAGE_ID"
         new_id=$(docker image inspect $image --format "{{.ID}}")
         if [ "$old_id" != "$new_id" ]; then
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -56,9 +114,13 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.test.boot
     - name: kvm.ssh.start
       run: |
+        set -x
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTS='--dryrun'
+        sleep 10
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.log
     - name: kvm.ssh
       run: |
+        set -x
         time ./kvm_ssh ssh id
         time ./kvm_ssh ssh sudo id
         ./kvm_ssh ssh cat /etc/issue

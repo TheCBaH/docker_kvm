@@ -1,0 +1,3 @@
+[submodule "ubuntu-autoinstall-generator"]
+	path = ubuntu-autoinstall-generator
+	url = https://github.com/TheCBaH/ubuntu-autoinstall-generator.git

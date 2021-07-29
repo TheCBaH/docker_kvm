@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 set -o pipefail
-set -x
+#set -x
 
 cmd="init"
 os_ver="ubuntu-20.04"
@@ -11,6 +11,7 @@ swap_size="256M"
 dryrun=''
 id='data/img/id_kvm'
 wait=''
+proxy=''
 port=8022
 data_dir=data
 base_dir=$data_dir/base
@@ -48,6 +49,18 @@ while test $# -gt 0; do
         --port)
             port=$1;shift
             ;;
+        --proxy)
+            proxy=$1;shift
+            ;;
+        --boot)
+            boot=$1;shift
+            ;;
+        --swap)
+            swap=$1;shift
+            ;;
+        --data)
+            data=$1;shift
+            ;;
         --*)
             echo "Not supported option '$opt'" 2>&1
             exit 1
@@ -61,9 +74,9 @@ done
 ssh_port=$port
 ssh_host=localhost
 mkdir -p $img_dir $var_dir
-boot=$img_dir/${os_ver}-boot.img
-data=$img_dir/${os_ver}-data.img
-swap=$img_dir/${os_ver}-swap.img
+boot=${boot:-$img_dir/${os_ver}-boot.img}
+data=${data:-$img_dir/${os_ver}-data.img}
+swap=${swap:-$img_dir/${os_ver}-swap.img}
 
 do_id() {
     if [ ! -f $id ]; then
@@ -75,6 +88,8 @@ do_cloud() {
     meta=$img_dir/cloud/meta-data
     udata=$img_dir/cloud/user-data
     mkdir -p $(dirname $meta)
+    test -f $id.pub
+    ID="$(cat $id.pub)"
     cat >$meta <<_YAML_
 instance-id: kvm-docker
 local-hostname: kvm-docker
@@ -82,7 +97,7 @@ _YAML_
     cat >$udata <<_YAML_
 #cloud-config
 ssh_authorized_keys:
-  - $(cat $id.pub)
+  - '$ID'
 power_state:
   mode: poweroff
   timeout: 60
@@ -116,7 +131,7 @@ _YAML_
     echo '$user ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/$user
     chroot --skip-chdir --userspec=$user:$gid / bash -eux -o pipefail <<_USER_
     echo | ssh-keygen -P ''
-    echo "$(cat $id.pub)" >/home/$user/.ssh/authorized_keys
+    echo "$ID" >/home/$user/.ssh/authorized_keys
     chmod 0600 /home/$user/.ssh/authorized_keys
     _USER_
 _YAML_
@@ -178,9 +193,11 @@ do_qemu() {
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
     -drive if=virtio,format=qcow2,file=$boot \
-    -drive if=virtio,format=qcow2,file=$data \
     -virtfs local,id=data_dev,path=data,security_model=none,mount_tag=data_mount \
     "
+    if [ -f "$data" ]; then
+        qemu_options="${qemu_options} -drive if=virtio,format=qcow2,file=$data"
+    fi
     if [ -w /dev/net/tun ]; then
         do_tap $qemu
         qemu_options="${qemu_options} -netdev tap,id=net0,script=tap/up,downscript=tap/down"
@@ -197,7 +214,7 @@ do_qemu() {
         qemu_options="${qemu_options} -drive if=virtio,read-only=on,driver=vvfat,file=fat:$img_dir/cloud,label=cidata"
     fi
 
-    if [ -n "$swap_size" ]; then
+    if [ -f "$swap" ]; then
         qemu_options="${qemu_options} -drive if=virtio,format=qcow2,file=$swap"
     fi
 
@@ -365,6 +382,76 @@ do_wait() {
     sleep infinity
 }
 
+do_autoinstall_cfg() {
+    # https://ubuntu.com/server/docs/install/autoinstall-schema
+    # https://ubuntu.com/server/docs/install/autoinstall-reference
+    user=$(id -un)
+    test -f $id.pub
+    ID="$(cat $id.pub)"
+    password=$(echo $user | mkpasswd --stdin --method=sha-256)
+    user_install=$var_dir/user-install.yaml
+    cat >$user_install <<_YAML_
+#cloud-config
+autoinstall:
+  version: 1
+  storage:
+    layout:
+      name: direct
+  ssh:
+    install-server: true
+    authorized-keys:
+      - '$ID'
+  identity:
+    username: $user
+    password: $password
+    hostname: kvm-docker-$user
+  late-commands:
+    - |
+      echo '$user ALL=(ALL) NOPASSWD:ALL' >/target/etc/sudoers.d/$user
+    - |
+      chroot /target/ bash -eux -o pipefail <<_ROOT_
+      apt-get clean; rm -rf /var/lib/apt/lists/*
+      _ROOT_
+  user-data:
+    users:
+      - username: $user
+        groups: sudo
+        ssh_authorized-keys:
+          - '$ID'
+_YAML_
+if [ -n "$proxy" ]; then
+    echo "  proxy: $proxy" >>$user_install
+fi
+    cloud-localds $img_dir/user-install.img  $user_install
+}
+
+do_auto_install() {
+    cd=$img_dir/ubuntu-20.04.2-live-server-amd64-autoinstall.iso
+    rootfs="$img_dir/${os_ver}-rootfs.img"
+    rm -rf $rootfs
+    test -f $rootfs || qemu-img create -f qcow2 $rootfs 100G
+    qemu_options="
+    -m 2G \
+    -cdrom $cd \
+    -smp 2 \
+    -no-reboot \
+    -device virtio-net-pci,netdev=net0 \
+    -drive if=virtio,format=qcow2,file=$rootfs \
+    -drive if=virtio,format=raw,file=$img_dir/user-install.img \
+    "
+    qemu_options="${qemu_options} -netdev user,id=net0,hostfwd=tcp::$port-:22"
+    if [ -r /dev/kvm ]; then
+        qemu_options="${qemu_options} -accel kvm"
+    fi
+    qemu_options="${qemu_options} --serial mon:stdio"
+    qemu_options="${qemu_options} -display vnc=$(hostname -i):0"
+
+    qemu=$(which qemu-system-x86_64)
+    exec $qemu ${qemu_options:-} $@
+}
+
+
+
 case "$cmd" in
     init)
         cmd_init
@@ -405,6 +492,13 @@ CMD
         else
             exit 1
         fi
+        ;;
+    auto-install)
+        do_auto_install
+        ;;
+    auto-install-cfg)
+        do_id
+        do_autoinstall_cfg
         ;;
     *)
         echo "Not supported command '$cmd'" 2>&1
