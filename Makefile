@@ -110,3 +110,9 @@ ubuntu-autoinstall.cfg:
 
 clean:
 	rm -rf data/img data/var
+
+alpine-make-vm-image.image_run: DOCKER_RUN_OPTS=--userns=host --privileged -v=/lib/modules:/lib/modules:ro
+alpine-make-vm-image.image_run: NETWORK_OPTIONS=
+alpine-make-vm-image.image_run: USERSPEC=
+alpine-make-vm-image.image_run: CMD=env USERINFO=${USER}:${UID}:${GROUP}:${GID} TIMEZONE=$$(cat /etc/timezone) ./alpine/build.sh ${ALPINE_VERSION}
+alpine-make-vm-image.image: ID_OFFSET=0

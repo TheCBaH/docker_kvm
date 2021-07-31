@@ -1,3 +1,6 @@
 [submodule "ubuntu-autoinstall-generator"]
 	path = ubuntu-autoinstall-generator
 	url = https://github.com/TheCBaH/ubuntu-autoinstall-generator.git
+[submodule "alpine-make-vm-image"]
+	path = alpine-make-vm-image
+	url = https://github.com/alpinelinux/alpine-make-vm-image.git

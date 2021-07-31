@@ -1,0 +1,21 @@
+ARG OS_VER
+FROM alpine:${OS_VER}
+RUN set -eux; \
+    apk --no-cache add\
+ e2fsprogs\
+ qemu-img\
+ ; echo DONE
+ARG USERINFO
+RUN set -eux; \
+    user=$(echo ${USERINFO}|cut -f1 -d:);\
+    uid=$(echo ${USERINFO}|cut -f2 -d:);\
+    group=$(echo ${USERINFO}|cut -f3 -d:);\
+    group=$user;\
+    gid=$(echo ${USERINFO}|cut -f4 -d:);\
+    addgroup -g $gid $group;\
+    adduser -u $uid -G $group -D $user;\
+    addgroup $user $group;\
+    addgroup sudo;\
+    addgroup $user sudo;\
+    echo "$user ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers;\
+    echo DONE

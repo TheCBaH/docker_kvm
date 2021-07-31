@@ -53,7 +53,7 @@ jobs:
         time ./kvm_ssh ssh id
         time ./kvm_ssh ssh sudo id
         ./kvm_ssh ssh cat /etc/issue
-        ./kvm_ssh ssh ls -al /mnt
+        ./kvm_ssh ssh uname -a
         ./kvm_ssh ssh df -h
     - name: kvm.ssh.stop
       run: |
@@ -112,6 +112,9 @@ jobs:
     - name: kvm.test.boot
       run: |
         make ${{ matrix.os }}-${{ matrix.version }}.test.boot
+    - name: kvm.ssh.test
+      run: |
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
     - name: kvm.ssh.start
       run: |
         set -x
@@ -125,7 +128,63 @@ jobs:
         time ./kvm_ssh ssh sudo id
         ./kvm_ssh ssh cat /etc/issue
         ./kvm_ssh ssh ls -al /mnt
+        ./kvm_ssh ssh uname -a
         ./kvm_ssh ssh df -h
     - name: kvm.ssh.stop
       run: |
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
+  alpine:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [latest-stable, '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: kvm.image
+      run: |
+        set -x
+        image=$(make image.print)
+        IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$GITHUB_REPOSITORY/$image
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+        docker pull $IMAGE_ID || true
+        make kvm_image DOCKER_BUILD_OPTS="--cache-from=$IMAGE_ID"
+    - name: prepare
+      run: |
+        make kvm_run CMD='./kvm.sh prepare'
+    - name: alpine.image
+      run: |
+        set -x
+        make alpine-make-vm-image.image
+        sudo modprobe nbd max_part=0
+        make alpine-make-vm-image.image_run ALPINE_VERSION="${{ matrix.version }}"
+    - name: alpine.test.boot
+      run: |
+        make alpine-${{ matrix.version }}.test.boot
+    - name: image.compact
+      run: |
+        set -x
+        make kvm_run CMD='./compact-qcow.sh data/img/alpine-${{ matrix.version }}-boot.img'
+        make alpine-${{ matrix.version }}.test.boot
+    - name: ssh.test
+      run: |
+        make alpine-${{ matrix.version }}.ssh.test
+    - name: kvm.ssh.start
+      run: |
+        make alpine-${{ matrix.version }}.ssh.start SSH_START_OPTS='--dryrun'
+        sleep 10
+        make alpine-${{ matrix.version }}.ssh.log
+    - name: ssh
+      run: |
+        set -x
+        time ./kvm_ssh ssh id
+        time ./kvm_ssh ssh sudo id
+        ./kvm_ssh ssh cat /etc/issue
+        ./kvm_ssh ssh uname -a
+        ./kvm_ssh ssh df -h /
+    - name: ssh.stop
+      run: |
+        make alpine-${{ matrix.version }}.ssh.stop

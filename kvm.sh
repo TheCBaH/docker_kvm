@@ -500,6 +500,10 @@ CMD
         do_id
         do_autoinstall_cfg
         ;;
+    prepare)
+        mkdir -p $img_dir
+        do_id
+        ;;
     *)
         echo "Not supported command '$cmd'" 2>&1
         exit 1
