@@ -302,8 +302,18 @@ cmd_ssh() {
 
     SSH_OPTIONS="$(cat $ssh_flag)"
     ssh_fail=1
-    if ssh ${SSH_OPTIONS} $@ ; then
-        ssh_fail=0
+    for n in $(seq 30); do
+        if timeout 10s ssh ${SSH_OPTIONS} true; then
+            ssh_fail=0
+            break
+        fi
+        sleep 5
+    done
+    if [ $ssh_fail = 0 ]; then
+        ssh_fail=1
+        if ssh ${SSH_OPTIONS} $@ ; then
+            ssh_fail=0
+        fi
     fi
 
     cmd_stop_ssh
@@ -327,7 +337,7 @@ case "$cmd" in
         exit 0
         ;;
     start_ssh)
-        rm -f $ssh_flag $ssh_flag.done
+        rm -f $ssh_flag $ssh_flag.done $ssh_flag.verified
         touch $ssh_flag.started
         if [ -n "$wait" ]; then
             trap "echo 'Stopping Linux.... '; cmd_stop_ssh; exit 0" EXIT
