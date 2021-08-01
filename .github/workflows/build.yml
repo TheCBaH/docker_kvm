@@ -51,12 +51,12 @@ jobs:
       if: steps.cache_base.outputs.cache-hit != 'true' || steps.cache_img.outputs.cache-hit != 'true'
       run: |
         make ${{ matrix.os }}-${{ matrix.version }}.init
-    - name: kvm.ssh.test
+    - name: kvm.test.boot
       run: |
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
+        make ${{ matrix.os }}-${{ matrix.version }}.test.boot
     - name: kvm.ssh.start
       run: |
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTIONS='--dryrun'
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTS='--dryrun'
     - name: kvm.ssh
       run: |
         time ./kvm_ssh ssh id

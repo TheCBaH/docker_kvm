@@ -201,12 +201,55 @@ do_qemu() {
         qemu_options="${qemu_options} -drive if=virtio,format=qcow2,file=$swap"
     fi
 
-    if [ $mode = background ]; then
+    case "$mode" in
+    background)
         $qemu ${qemu_options:-} $@ </dev/null >$log &
         qemu_job=$!
-    else
+        ;;
+    foreground)
         $qemu ${qemu_options:-} $@
-    fi
+        ;;
+    test)
+        (
+            sleep 30
+            qemu_pid=$(cat /tmp/qemu.pid)
+            for n in $(seq 0 120); do
+                if expr $n % 30 >/dev/null ; then
+                    true
+                else
+                    socat - UNIX-CONNECT:/tmp/qemu.mon << CMD || true
+system_powerdown
+CMD
+                fi
+                if [ ! -f /tmp/qemu.pid ]; then
+                    exit 0
+                fi
+                sleep 1
+            done
+            kill $qemu_pid
+            sleep 1
+            if kill -0 $qemu_pid; then
+                kill -KILL $qemu_pid
+            fi
+        )&
+        fail=1
+        if $qemu ${qemu_options:-} \
+        -serial stdio \
+        -pidfile /tmp/qemu.pid \
+        -monitor unix:/tmp/qemu.mon,server,nowait \
+        $@ ; then
+            fail=0
+        fi
+        wait || true
+        if [ $fail -ne 0 ]; then
+            exit $fail
+        fi
+        ;;
+    *)
+        echo "Not supported qemu mode '$mpde'" 2>&1
+        exit 1
+        ;;
+    esac
 }
 
 cmd_init() {
@@ -334,6 +377,9 @@ case "$cmd" in
     ssh)
         cmd_ssh "$@"
         exit 0
+        ;;
+    test)
+        do_qemu test
         ;;
     start_ssh)
         rm -f $ssh_flag $ssh_flag.done $ssh_flag.verified

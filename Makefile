@@ -63,12 +63,15 @@ kvm_run:
 %.ssh.test:
 	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ssh id'
 
+%.test.boot:
+	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun test'
+
 %.ssh.start:
 	rm -f data/ssh_options*
 	docker run --rm --init --detach --name ${USER}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
-	 ./kvm.sh ${SSH_START_OPTIONS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
+	 ./kvm.sh ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
 
 %.ssh.log:
 	docker logs ${USER}_$(basename $@)
