@@ -203,7 +203,7 @@ do_qemu() {
 
     case "$mode" in
     background)
-        $qemu ${qemu_options:-} $@ </dev/null >$log &
+        ($qemu ${qemu_options:-} $@ </dev/null | exec tee $log) &
         qemu_job=$!
         ;;
     foreground)
@@ -292,14 +292,12 @@ cmd_start_ssh() {
     pid=$(cat $pidf)
     kill -0 $pid
     fail=1
-    for n in $(seq 60); do
-        tail -1 $log
+    for n in $(seq 120); do
+        sleep 1
         if grep -q 'login:' $log; then
             fail=''
-            sleep 3
             break
         fi
-        sleep 1
     done
     if [ -n "$fail" ]; then
         kill ${pid:-} || true
@@ -333,10 +331,10 @@ CMD
     done
     if [ -n "$fail" ]; then
         kill $pid
-        wait $pid
+        wait
         exit $fail
     fi
-    wait $pid
+    wait
 }
 
 cmd_ssh() {
