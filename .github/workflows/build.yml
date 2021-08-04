@@ -38,7 +38,7 @@ jobs:
       run: |
         make kvm_run CMD='./kvm.sh --boot data/img/ubuntu-20.04-rootfs.img --debug --dryrun test'
     - name: server.ssh.test
-      timeout-minutes: 4
+      timeout-minutes: 6
       run: |
         make kvm_run CMD='./kvm.sh --boot data/img/ubuntu-20.04-rootfs.img --debug --dryrun ssh id'
     - name: kvm.ssh.start
@@ -188,3 +188,9 @@ jobs:
     - name: ssh.stop
       run: |
         make alpine-${{ matrix.version }}.ssh.stop
+    - name: alpine-images
+      uses: actions/upload-artifact@v2
+      with:
+        name: alpine-${{ matrix.version }}.images
+        path: |
+          data/img
