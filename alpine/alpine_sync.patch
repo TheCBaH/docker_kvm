@@ -1,0 +1,12 @@
+diff --git a/alpine-make-vm-image b/alpine-make-vm-image
+index d47c197..e0f8492 100755
+--- a/alpine-make-vm-image
++++ b/alpine-make-vm-image
+@@ -164,6 +164,7 @@ attach_image() {
+ 		sleep 1
+ 		nbd_dev=$(get_available_nbd)
+ 	} || die 'No available nbd device found!'
++	sync "$image";sleep 1
+ 
+ 	qemu-nbd --connect="$nbd_dev" --cache=writeback \
+ 		${format:+--format=$format} "$image" \

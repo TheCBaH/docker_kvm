@@ -138,7 +138,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [ '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
     - name: checkout
       uses: actions/checkout@v2
@@ -159,6 +159,7 @@ jobs:
       run: |
         set -x
         make alpine-make-vm-image.image
+        git -C alpine-make-vm-image apply <alpine/alpine_sync.patch
         sudo modprobe nbd max_part=0
         make alpine-make-vm-image.image_run ALPINE_VERSION="${{ matrix.version }}"
     - name: alpine.test.boot
