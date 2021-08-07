@@ -153,8 +153,7 @@ jobs:
         docker pull $IMAGE_ID || true
         make kvm_image DOCKER_BUILD_OPTS="--cache-from=$IMAGE_ID"
     - name: prepare
-      run: |
-        make kvm_run CMD='./kvm.sh prepare'
+      run: make kvm_run CMD='./kvm.sh prepare'
     - name: alpine.image
       run: |
         set -x
@@ -163,16 +162,14 @@ jobs:
         sudo modprobe nbd max_part=0
         make alpine-make-vm-image.image_run ALPINE_VERSION="${{ matrix.version }}"
     - name: alpine.test.boot
-      run: |
-        make alpine-${{ matrix.version }}.test.boot
+      run: make alpine-${{ matrix.version }}.test.boot
     - name: image.compact
       run: |
         set -x
         make kvm_run CMD='./compact-qcow.sh data/img/alpine-${{ matrix.version }}-boot.img'
         make alpine-${{ matrix.version }}.test.boot
     - name: ssh.test
-      run: |
-        make alpine-${{ matrix.version }}.ssh.test
+      run: make alpine-${{ matrix.version }}.ssh.test
     - name: kvm.ssh.start
       run: |
         make alpine-${{ matrix.version }}.ssh.start SSH_START_OPTS='--dryrun'
@@ -187,8 +184,9 @@ jobs:
         ./kvm_ssh ssh uname -a
         ./kvm_ssh ssh df -h /
     - name: ssh.stop
-      run: |
-        make alpine-${{ matrix.version }}.ssh.stop
+      run: make alpine-${{ matrix.version }}.ssh.stop
+    - name: kernel
+      run: make kvm_run CMD='alpine/copy-kernel.sh ${{ matrix.version }}'
     - name: alpine-images
       uses: actions/upload-artifact@v2
       with:
