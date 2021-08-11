@@ -2,18 +2,18 @@
 set -eu
 set -o pipefail
 #set -x
-
+this=$(dirname $0)
 cmd="init"
 os_ver="ubuntu-20.04"
 data_mnt="/opt/data"
 data_size="16G"
 swap_size="256M"
 dryrun=''
-id='data/img/id_kvm'
+id="$this/data/img/id_kvm"
 wait=''
 proxy=''
 port=8022
-data_dir=data
+data_dir=$this/data
 base_dir=$data_dir/base
 img_dir=$data_dir/img
 var_dir=$data_dir/var
@@ -200,7 +200,7 @@ do_qemu() {
     fi
     if [ -w /dev/net/tun ]; then
         do_tap $qemu
-        qemu_options="${qemu_options} -netdev tap,id=net0,script=tap/up,downscript=tap/down"
+        qemu_options="${qemu_options} -netdev tap,id=net0,script=$this/tap/up,downscript=$this/tap/down"
     else
         qemu_options="${qemu_options} -netdev user,id=net0,hostfwd=tcp::$port-:22"
     fi
