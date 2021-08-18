@@ -243,10 +243,11 @@ CMD
                 fi
                 sleep 1
             done
-            kill $qemu_pid
-            sleep 1
-            if kill -0 $qemu_pid; then
-                kill -KILL $qemu_pid
+            if kill $qemu_pid; then
+                sleep 1
+                if kill -0 $qemu_pid; then
+                    kill -KILL $qemu_pid
+                fi
             fi
         )&
         fail=1
