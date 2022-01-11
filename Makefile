@@ -22,7 +22,7 @@ data/base/%-minimal-cloudimg-amd64.img:
 data/base/ubuntu-16.04-minimal-cloudimg-amd64.img:
 	./kvm.sh download $@ 'https://cloud-images.ubuntu.com/minimal/releases/xenial/release/ubuntu-16.04-minimal-cloudimg-amd64-uefi1.img'
 
-data/base/ubuntu-20.04.2-live-server-amd64.iso:
+data/base/ubuntu-20.04.3-live-server-amd64.iso:
 	./kvm.sh download $@ 'https://releases.ubuntu.com/20.04/$(notdir $@)'
 
 image_name=${USER}_$(basename $(1))
@@ -45,7 +45,7 @@ kvm_image:
 .PRECIOUS: data/base/ubuntu-20.04-minimal-cloudimg-amd64.img
 .PRECIOUS: data/base/ubuntu-18.04-minimal-cloudimg-amd64.img
 .PRECIOUS: data/base/ubuntu-16.04-minimal-cloudimg-amd64.img
-.PRECIOUS: data/base/ubuntu-20.04.2-live-server-amd64.iso
+.PRECIOUS: data/base/ubuntu-20.04.3-live-server-amd64.iso
 
 SSH_PORT=9022
 USE_TAP=n
@@ -69,7 +69,7 @@ kvm_run:
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${USERSPEC} ${NETWORK_OPTIONS} $(call image_name, $@) ${CMD}
 
-ubuntu-autoinstall: data/base/ubuntu-20.04.2-live-server-amd64.iso
+ubuntu-autoinstall: data/base/ubuntu-20.04.3-live-server-amd64.iso
 	# --user-data ubuntu-autoinstall-generator/user-data.example --all-in-one
 	${MAKE} $@.image_run CMD='bash ubuntu-autoinstall-generator/ubuntu-autoinstall-generator.sh --no-verify\
 	 --source $^ --destination data/img/$(basename $(notdir $^))-autoinstall.iso'

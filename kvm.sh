@@ -427,7 +427,7 @@ fi
 }
 
 do_auto_install() {
-    cd=$img_dir/ubuntu-20.04.2-live-server-amd64-autoinstall.iso
+    cd=$img_dir/ubuntu-20.04.3-live-server-amd64-autoinstall.iso
     rootfs="$img_dir/${os_ver}-rootfs.img"
     rm -rf $rootfs
     test -f $rootfs || qemu-img create -f qcow2 $rootfs 100G
