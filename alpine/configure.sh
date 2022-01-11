@@ -33,9 +33,23 @@ rc-update add net.eth0 default
 rc-update add net.lo boot
 
 step 'Remove extra files'
+(
+	cat /etc/os-release
+	. /etc/os-release
+	gpu="/lib/modules/*/kernel/drivers/gpu"
+	echo $VERSION_ID
+    case "$VERSION_ID" in
+	3.15.*)
+		find $gpu -type f| awk '/\/drm.ko/ || /\/drm_panel_orientation_quirks.ko/ {next} {print $1}'|xargs rm -f
+		find $gpu -type d -empty -delete
+		;;
+    *)
+		rm -rf $gpu
+		;;
+	esac
+)
 rm -rf\
  /lib/modules/*/kernel/arch/x86/kvm \
- /lib/modules/*/kernel/drivers/gpu \
  /lib/modules/*/kernel/drivers/md \
  /lib/modules/*/kernel/drivers/scsi \
  /lib/modules/4.19.118-0-virt/kernel/fs/btrfs \
