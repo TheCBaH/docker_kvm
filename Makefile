@@ -5,6 +5,7 @@ USER=$(shell id -un)
 GROUP=$(shell id -gn)
 KVM=$(shell gid=$$(getent group kvm 2>/dev/null|cut -f 3 -d:);test -n $$gid && expr $$gid - ${ID_OFFSET})
 WORKSPACE=${CURDIR}
+WORKSPACE_ROOT=${CURDIR}
 TERMINAL=$(shell test -t 0 && echo t)
 DATA_DIR?=${WORKSPACE}/data
 
@@ -62,13 +63,13 @@ ${DATA_DIR}:
 	mkdir -p $@
 
 kvm_run: ${DATA_DIR}
-	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}:ro\
+	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
 
 %.image_run: ${DATA_DIR}
-	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}:ro\
+	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
 	 ${DOCKER_RUN_OPTS}\
 	 $(if ${http_proxy},-e http_proxy=${http_proxy})\
@@ -100,7 +101,7 @@ ubuntu-autoinstall.cfg:
 
 %.ssh.start: ${DATA_DIR}
 	rm -f ${DATA_DIR}/ssh_options*
-	docker run --rm --init --detach --name ${USER}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE}:${WORKSPACE}:ro\
+	docker run --rm --init --detach --name ${USER}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
