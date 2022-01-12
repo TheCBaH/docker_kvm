@@ -13,6 +13,7 @@ wait=''
 proxy=''
 port=8022
 data_dir=${DATA_DIR:-$this/data}
+host_data=$data_dir
 base_dir=$data_dir/base
 img_dir=$data_dir/img
 var_dir=$data_dir/var
@@ -64,6 +65,9 @@ while test $# -gt 0; do
             ;;
         --qemu-opts-file)
             qemu_opts=$1;shift
+            ;;
+        --host-data)
+            host_data=$1;shift
             ;;
         --*)
             echo "Not supported option '$opt'" 2>&1
@@ -197,7 +201,7 @@ do_qemu() {
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
     -drive if=virtio,format=qcow2,file=$boot \
-    -virtfs local,id=data_dev,path=${data_dir},security_model=none,mount_tag=data_mount \
+    -virtfs local,id=data_dev,path=${host_data},security_model=none,mount_tag=data_mount \
     "
     if [ -n "$qemu_opts" ]; then
         qemu_options="$qemu_options $(cat $qemu_opts)"
