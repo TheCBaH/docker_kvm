@@ -11,6 +11,8 @@ swap_size="256M"
 dryrun=''
 wait=''
 proxy=''
+memory=2G
+cpu=2
 port=8022
 data_dir=${DATA_DIR:-$this/data}
 host_data=$data_dir
@@ -68,6 +70,12 @@ while test $# -gt 0; do
             ;;
         --host-data)
             host_data=$1;shift
+            ;;
+        --cpu)
+            cpu=$1;shift
+            ;;
+        --memory)
+            memory=$1;shift
             ;;
         --*)
             echo "Not supported option '$opt'" 2>&1
@@ -195,8 +203,8 @@ do_qemu() {
     mode=$1;shift
     qemu=$(which qemu-system-x86_64)
     qemu_options="
-    -m 2G \
-    -smp 2 \
+    -m $memory \
+    -smp $cpu \
     -nographic \
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
@@ -443,9 +451,9 @@ do_auto_install() {
     rm -rf $rootfs
     test -f $rootfs || qemu-img create -f qcow2 $rootfs 100G
     qemu_options="
-    -m 2G \
+    -m $memory \
     -cdrom $cd \
-    -smp 2 \
+    -smp $cpu \
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
     -drive if=virtio,format=qcow2,file=$rootfs \
