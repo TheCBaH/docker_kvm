@@ -4,7 +4,8 @@ set -eu
 this=$(dirname $0)
 cmd=$1
 shift
-options=$this/data/var/ssh_options
+data_dir=${DATA_DIR:-$this/data}
+options=$data_dir/var/ssh_options
 for n in $(seq 30); do
     if [ -f $options ]; then
         ssh_options="$(cat $options)"

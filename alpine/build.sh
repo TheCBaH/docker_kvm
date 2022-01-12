@@ -8,7 +8,8 @@ uid=$(echo ${USERINFO}|cut -f2 -d:);\
 group=$(echo ${USERINFO}|cut -f3 -d:);\
 group=$user;\
 gid=$(echo ${USERINFO}|cut -f4 -d:);\
-img="data/img/alpine-$ver-boot.img"
+data_dir=${DATA_DIR:-data}
+img="$data_dir/img/alpine-$ver-boot.img"
 rm -rf $img
 _sudo='sudo'
 if [ $(id -u) -eq 0 ]; then
@@ -23,5 +24,5 @@ $_sudo env APK_OPTS='--verbose' http_proxy=${http_proxy:-} alpine-make-vm-image/
  --repositories-file /dev/null\
  --script-chroot\
  --serial-console\
- $img -- $this_dir/configure.sh $user $uid $group $gid "$(cat data/img/id_kvm.pub)"
+ $img -- $this_dir/configure.sh $user $uid $group $gid "$(cat $data_dir/img/id_kvm.pub)"
 $_sudo chown $user $img

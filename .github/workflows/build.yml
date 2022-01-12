@@ -10,6 +10,8 @@ on:
 jobs:
   live-server:
     runs-on: ubuntu-latest
+    env:
+      DATA_DIR: /tmp/docker_kvm
     steps:
     - name: checkout
       uses: actions/checkout@v2
@@ -34,18 +36,18 @@ jobs:
       run: |
         set -x
         make kvm_run CMD='./kvm.sh --os ubuntu-20.04 --debug auto-install'
-        ls -alh data/img
+        ls -alh ${{ env.DATA_DIR }}/img
     - name: server.boot.test
       run: |
-        make kvm_run CMD='./kvm.sh --boot data/img/ubuntu-20.04-rootfs.img --debug --dryrun test'
+        make kvm_run CMD='./kvm.sh --boot ${{ env.DATA_DIR }}/img/ubuntu-20.04-rootfs.img --debug --dryrun test'
     - name: server.ssh.test
       timeout-minutes: 6
       run: |
-        make kvm_run CMD='./kvm.sh --boot data/img/ubuntu-20.04-rootfs.img --debug --dryrun ssh id'
+        make kvm_run CMD='./kvm.sh --boot ${{ env.DATA_DIR }}/img/ubuntu-20.04-rootfs.img --debug --dryrun ssh id'
     - name: kvm.ssh.start
       run: |
         set -x
-        make ubuntu-live-20.04.ssh.start SSH_START_OPTS='--boot data/img/ubuntu-20.04-rootfs.img --dryrun'
+        make ubuntu-live-20.04.ssh.start SSH_START_OPTS='--boot ${{ env.DATA_DIR }}/img/ubuntu-20.04-rootfs.img --dryrun'
         sleep 10
         make ubuntu-live-20.04.ssh.log
     - name: kvm.ssh
@@ -65,10 +67,12 @@ jobs:
       with:
         name: ubuntu-autoinstal
         path: |
-          data/img
-          data/var
+          ${{ env.DATA_DIR }}img
+          ${{ env.DATA_DIR }}var
   cloud-img:
     runs-on: ubuntu-latest
+    env:
+      DATA_DIR: /tmp/docker_kvm
     strategy:
       fail-fast: false
       matrix:
@@ -99,12 +103,12 @@ jobs:
     - uses: actions/cache@v2
       id: cache_base
       with:
-        path: data/base
+        path: ${{ env.DATA_DIR }}/base
         key: base-${{ matrix.os }}-${{ matrix.version }}-${{ hashFiles('Makefile') }}
     - uses: actions/cache@v2
       id: cache_img
       with:
-        path: data/img
+        path: ${{ env.DATA_DIR }}/img
         key: img-${{ matrix.os }}-${{ matrix.version }}-${{ hashFiles('Makefile', 'kvm.sh') }}
     - name: kvm.init
       if: steps.cache_base.outputs.cache-hit != 'true' || steps.cache_img.outputs.cache-hit != 'true'
@@ -136,6 +140,8 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
   alpine:
     runs-on: ubuntu-latest
+    env:
+      DATA_DIR: /tmp/docker_kvm
     strategy:
       fail-fast: false
       matrix:
@@ -167,7 +173,7 @@ jobs:
     - name: image.compact
       run: |
         set -x
-        make kvm_run CMD='./compact-qcow.sh data/img/alpine-${{ matrix.version }}-boot.img'
+        make kvm_run CMD='./compact-qcow.sh ${{ env.DATA_DIR }}/img/alpine-${{ matrix.version }}-boot.img'
         make alpine-${{ matrix.version }}.test.boot
     - name: ssh.test
       run: make alpine-${{ matrix.version }}.ssh.test
@@ -193,4 +199,4 @@ jobs:
       with:
         name: alpine-${{ matrix.version }}.images
         path: |
-          data/img
+          ${{ env.DATA_DIR }}/img

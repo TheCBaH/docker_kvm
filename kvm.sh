@@ -2,21 +2,21 @@
 set -eu
 set -o pipefail
 #set -x
-this=$(dirname $0)
+this=$(dirname $(readlink -f $0))
 cmd="init"
 os_ver="ubuntu-20.04"
 data_mnt="/opt/data"
 data_size="16G"
 swap_size="256M"
 dryrun=''
-id="$this/data/img/id_kvm"
 wait=''
 proxy=''
 port=8022
-data_dir=$this/data
+data_dir=${DATA_DIR:-$this/data}
 base_dir=$data_dir/base
 img_dir=$data_dir/img
 var_dir=$data_dir/var
+id=$data_dir/img/id_kvm
 ssh_flag=$var_dir/ssh_options
 qemu_opts=''
 
@@ -197,7 +197,7 @@ do_qemu() {
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
     -drive if=virtio,format=qcow2,file=$boot \
-    -virtfs local,id=data_dev,path=data,security_model=none,mount_tag=data_mount \
+    -virtfs local,id=data_dev,path=${data_dir},security_model=none,mount_tag=data_mount \
     "
     if [ -n "$qemu_opts" ]; then
         qemu_options="$qemu_options $(cat $qemu_opts)"
