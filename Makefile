@@ -8,8 +8,9 @@ WORKSPACE=${CURDIR}
 WORKSPACE_ROOT=${CURDIR}
 TERMINAL=$(shell test -t 0 && echo t)
 DATA_DIR?=${WORKSPACE}/data
+DOCKER_NAMESPACE?=${USER}
 
-image=${USER}_kvm_image
+image=${DOCKER_NAMESPACE}/kvm_image
 
 .SUFFIXES:
 MAKEFLAGS += --no-builtin-rules
@@ -27,7 +28,7 @@ ${DATA_DIR}/base/ubuntu-16.04-minimal-cloudimg-amd64.img:
 ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso:
 	./kvm.sh download $@ 'https://releases.ubuntu.com/20.04/$(notdir $@)'
 
-image_name=${USER}_$(basename $(1))
+image_name=${DOCKER_NAMESPACE}_$(basename $(1))
 
 kvm_image:
 	docker build --tag ${image} ${DOCKER_BUILD_OPTS} -f Dockerfile\
@@ -101,7 +102,7 @@ ubuntu-autoinstall.cfg:
 
 %.ssh.start: ${DATA_DIR}
 	rm -f ${DATA_DIR}/ssh_options*
-	docker run --rm --init --detach --name ${USER}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
+	docker run --rm --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\

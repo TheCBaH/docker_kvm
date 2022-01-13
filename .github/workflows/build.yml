@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATA_DIR: /tmp/docker_kvm
+      DOCKER_NAMESPACE: github_ci
     steps:
     - name: checkout
       uses: actions/checkout@v2
