@@ -77,6 +77,9 @@ while test $# -gt 0; do
         --memory)
             memory=$1;shift
             ;;
+        --sealed)
+            ssh_flag="/tmp/ssh_options"
+            ;;
         --*)
             echo "Not supported option '$opt'" 2>&1
             exit 1

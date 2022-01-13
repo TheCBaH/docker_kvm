@@ -11,6 +11,7 @@ DATA_DIR?=${WORKSPACE}/data
 DOCKER_NAMESPACE?=${USER}
 
 image=${DOCKER_NAMESPACE}/kvm_image
+export DATA_DIR
 
 .SUFFIXES:
 MAKEFLAGS += --no-builtin-rules
@@ -107,6 +108,9 @@ ubuntu-autoinstall.cfg:
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
 	 $(realpath kvm.sh) ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
+
+%.ssh.connect:
+	docker exec -i${TERMINAL} --env DATA_DIR ${DOCKER_NAMESPACE}_$(basename $@) ./kvm_ssh ${SSH_CONNECT_CMD}
 
 %.ssh.log:
 	docker logs ${USER}_$(basename $@)

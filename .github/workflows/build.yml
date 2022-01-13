@@ -62,14 +62,20 @@ jobs:
     - name: kvm.ssh.stop
       run: |
         make ubuntu-live-20.04.ssh.stop
+    - name: ssh.connect
+      run: |
+        set -x
+        make ubuntu-liv-20.04.ssh.start SSH_START_OPTS='--sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
+        make ubuntu-liv-20.04.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
+        make ubuntu-liv-20.04.ssh.stop
     - name: failed-images
       uses: actions/upload-artifact@v2
       if: failure()
       with:
         name: ubuntu-autoinstal
         path: |
-          ${{ env.DATA_DIR }}img
-          ${{ env.DATA_DIR }}var
+          ${{ env.DATA_DIR }}/img
+          ${{ env.DATA_DIR }}/var
   cloud-img:
     runs-on: ubuntu-latest
     env:
@@ -139,6 +145,12 @@ jobs:
     - name: kvm.ssh.stop
       run: |
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
+    - name: ssh.connect
+      run: |
+        set -x
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTS='--sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
   alpine:
     runs-on: ubuntu-latest
     env:
@@ -193,6 +205,12 @@ jobs:
         ./kvm_ssh ssh df -h /
     - name: ssh.stop
       run: make alpine-${{ matrix.version }}.ssh.stop
+    - name: ssh.connect
+      run: |
+        set -x
+        make alpine-${{ matrix.version }}.ssh.start SSH_START_OPTS='--sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
+        make alpine-${{ matrix.version }}.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
+        make alpine-${{ matrix.version }}.ssh.stop
     - name: kernel
       run: make kvm_run CMD='alpine/copy-kernel.sh ${{ matrix.version }}'
     - name: alpine-images
