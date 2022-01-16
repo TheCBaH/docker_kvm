@@ -113,13 +113,13 @@ ubuntu-autoinstall.cfg:
 	docker exec -i${TERMINAL} --env DATA_DIR ${DOCKER_NAMESPACE}_$(basename $@) ./kvm_ssh ${SSH_CONNECT_CMD}
 
 %.ssh.log:
-	docker logs ${USER}_$(basename $@)
+	docker logs ${DOCKER_NAMESPACE}_$(basename $@)
 
 %.ssh.qemu-log:
-	docker exec ${USER}_$(basename $@) cat /tmp/qemu.log
+	docker exec ${DOCKER_NAMESPACE}_$(basename $@) cat /tmp/qemu.log
 
 %.ssh.stop:
-	docker stop -t 60 ${USER}_$(basename $@)
+	docker stop -t 60 ${DOCKER_NAMESPACE}_$(basename $@)
 
 clean:
 	rm -rf ${DATA_DIR}/img ${DATA_DIR}/var

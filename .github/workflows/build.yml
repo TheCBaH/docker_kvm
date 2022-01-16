@@ -65,12 +65,14 @@ jobs:
     - name: ssh.connect
       run: |
         set -x
-        make ubuntu-liv-20.04.ssh.start SSH_START_OPTS='--sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
-        make ubuntu-liv-20.04.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
-        make ubuntu-liv-20.04.ssh.stop
+        make ubuntu-live-20.04.ssh.start SSH_START_OPTS='--boot ${{ env.DATA_DIR }}/img/ubuntu-20.04-rootfs.img --sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
+        sleep 10
+        make ubuntu-live-20.04.ssh.log
+        make ubuntu-live-20.04.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
+        make ubuntu-live-20.04.ssh.stop
     - name: failed-images
       uses: actions/upload-artifact@v2
-      if: failure()
+      if: false && failure()
       with:
         name: ubuntu-autoinstal
         path: |
@@ -80,6 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATA_DIR: /tmp/docker_kvm
+      DOCKER_NAMESPACE: github_ci
     strategy:
       fail-fast: false
       matrix:
@@ -155,6 +158,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATA_DIR: /tmp/docker_kvm
+      DOCKER_NAMESPACE: github_ci
     strategy:
       fail-fast: false
       matrix:
