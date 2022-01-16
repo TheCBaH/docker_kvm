@@ -59,6 +59,13 @@ jobs:
         ./kvm_ssh ssh cat /etc/issue
         ./kvm_ssh ssh uname -a
         ./kvm_ssh ssh df -h
+    - name: kvm.ssh.env
+      run: |
+        set -x
+        test=$(git rev-parse HEAD)
+        export test
+        test_ssh=$(echo 'echo $test'|./kvm_ssh ssh -o SendEnv=test sh -x)
+        test "$test" = "$test_ssh"
     - name: kvm.ssh.stop
       run: |
         make ubuntu-live-20.04.ssh.stop
@@ -69,6 +76,10 @@ jobs:
         sleep 10
         make ubuntu-live-20.04.ssh.log
         make ubuntu-live-20.04.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
+        test=$(git rev-parse HEAD)
+        export test
+        test_ssh=$(echo 'echo $test'|make --quiet  ubuntu-live-20.04.ssh.connect SSH_CONNECT_ENV=test SSH_CONNECT_CMD='--sealed ssh -o SendEnv=test sh -x')
+        test "$test" = "$test_ssh"
         make ubuntu-live-20.04.ssh.stop
     - name: failed-images
       uses: actions/upload-artifact@v2
@@ -145,6 +156,13 @@ jobs:
         ./kvm_ssh ssh ls -al /mnt
         ./kvm_ssh ssh uname -a
         ./kvm_ssh ssh df -h
+    - name: kvm.ssh.env
+      run: |
+        set -x
+        test=$(git rev-parse HEAD)
+        export test
+        test_ssh=$(echo 'echo $test'|./kvm_ssh ssh -o SendEnv=test sh -x)
+        test "$test" = "$test_ssh"
     - name: kvm.ssh.stop
       run: |
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
@@ -153,6 +171,10 @@ jobs:
         set -x
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTS='--sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
+        test=$(git rev-parse HEAD)
+        export test
+        test_ssh=$(echo 'echo $test'|make --quiet ${{ matrix.os }}-${{ matrix.version }}.ssh.connect SSH_CONNECT_ENV=test SSH_CONNECT_CMD='--sealed ssh -o SendEnv=test sh -x')
+        test "$test" = "$test_ssh"
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
   alpine:
     runs-on: ubuntu-latest

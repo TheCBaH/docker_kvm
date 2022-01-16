@@ -21,6 +21,7 @@ img_dir=$data_dir/img
 var_dir=$data_dir/var
 id=$data_dir/img/id_kvm
 ssh_flag=$var_dir/ssh_options
+sealed=''
 qemu_opts=''
 
 while test $# -gt 0; do
@@ -79,6 +80,7 @@ while test $# -gt 0; do
             ;;
         --sealed)
             ssh_flag="/tmp/ssh_options"
+            sealed=1
             ;;
         --*)
             echo "Not supported option '$opt'" 2>&1
@@ -148,6 +150,7 @@ _YAML_
     fi
     useradd -m -u $(id -u) -g $gid $user;usermod -aG sudo $user
     echo '$user ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/$user
+    sed -i 's/\(AcceptEnv\)\s.*$/\1 */' /etc/ssh/sshd_config
     chroot --skip-chdir --userspec=$user:$gid / bash -eux -o pipefail <<_USER_
     echo | ssh-keygen -P ''
     echo "$ID" >/home/$user/.ssh/authorized_keys
@@ -431,6 +434,7 @@ autoinstall:
   late-commands:
     - |
       echo '$user ALL=(ALL) NOPASSWD:ALL' >/target/etc/sudoers.d/$user
+      sed -i 's/\(AcceptEnv\)\s.*$/\1 */' /target/etc/ssh/sshd_config
     - |
       chroot /target/ bash -eux -o pipefail <<_ROOT_
       apt-get clean; rm -rf /var/lib/apt/lists/*

@@ -110,7 +110,7 @@ ubuntu-autoinstall.cfg:
 	 $(realpath kvm.sh) ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
 
 %.ssh.connect:
-	docker exec -i${TERMINAL} --env DATA_DIR ${DOCKER_NAMESPACE}_$(basename $@) ./kvm_ssh ${SSH_CONNECT_CMD}
+	docker exec -i${TERMINAL} $(addprefix --env , ${SSH_CONNECT_ENV}) --env DATA_DIR ${DOCKER_NAMESPACE}_$(basename $@) ./kvm_ssh ${SSH_CONNECT_CMD}
 
 %.ssh.log:
 	docker logs ${DOCKER_NAMESPACE}_$(basename $@)
