@@ -103,7 +103,7 @@ ubuntu-autoinstall.cfg:
 
 %.ssh.start: ${DATA_DIR}
 	rm -f ${DATA_DIR}/ssh_options*
-	docker run --rm --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) --rm -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
+	docker run --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
@@ -120,6 +120,7 @@ ubuntu-autoinstall.cfg:
 
 %.ssh.stop:
 	docker stop -t 60 ${DOCKER_NAMESPACE}_$(basename $@)
+	docker rm ${DOCKER_NAMESPACE}_$(basename $@)
 
 clean:
 	rm -rf ${DATA_DIR}/img ${DATA_DIR}/var
