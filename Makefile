@@ -35,12 +35,14 @@ kvm_image:
 	docker build --tag ${image} ${DOCKER_BUILD_OPTS} -f Dockerfile\
 	 --build-arg OS_VER=latest\
 	 --build-arg USERINFO=${USER}:${UID}:${GROUP}:${GID}:${KVM}\
+	 --build-arg http_proxy\
 	 .
 
 %.image: Dockerfile-%
 	docker build --tag $(call image_name,$@) ${DOCKER_BUILD_OPTS} -f $^\
 	 --build-arg OS_VER=latest\
 	 --build-arg USERINFO=${USER}:${UID}:${GROUP}:${GID}:${KVM}\
+	 --build-arg http_proxy\
 	 .
 
 %.print:

@@ -1,6 +1,9 @@
 ARG OS_VER
 FROM alpine:${OS_VER}
 RUN set -eux; \
+    if [ -n "${http_proxy:-}" ]; then\
+      sed -i 's/https:/http:/' /etc/apk/repositories;\
+    fi; \
     apk --no-cache add\
  e2fsprogs\
  qemu-img\
