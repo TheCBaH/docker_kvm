@@ -89,7 +89,7 @@ ubuntu-autoinstall.cfg:
 	${MAKE} $(basename $@).image_run CMD='./kvm.sh --debug ${AUTO_INSTALL_OPTS} $(if ${http_proxy},--proxy ${http_proxy}) auto-install-cfg'
 
 %.img: ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img
-	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) init'
+	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) ${KVM_SSH_OPTS} init'
 
 %.run: ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) run'
@@ -106,7 +106,7 @@ ubuntu-autoinstall.cfg:
 %.ssh.start: ${DATA_DIR}
 	rm -f ${DATA_DIR}/ssh_options*
 	docker run --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
-	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
+	 -v ${DATA_DIR}:${DATA_DIR} ${DOCKER_RUN_OPTS} --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
 	 $(realpath kvm.sh) ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
