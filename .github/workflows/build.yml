@@ -196,6 +196,12 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
+    - name: cleanup
+      run: |
+        set -x
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ubuntu_cleanup
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
     - name: standalone.image
       if:  ${{ matrix.flavor == 'minimal' }}
       run: |

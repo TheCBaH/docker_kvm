@@ -152,3 +152,9 @@ alpine-make-vm-image.image_run: NETWORK_OPTIONS=
 alpine-make-vm-image.image_run: USERSPEC=
 alpine-make-vm-image.image_run: CMD=env USERINFO=${USER}:${UID}:${GROUP}:${GID} TIMEZONE=$$(cat /etc/timezone) ./alpine/build.sh ${ALPINE_VERSION}
 alpine-make-vm-image.image: ID_OFFSET=0
+
+%.ubuntu_cleanup:
+	-${MAKE} $(basename $@).ssh.stop
+	${MAKE} $(basename $@).ssh.start SSH_START_OPTS='$(if ${DRYRUN},--dryrun) --sealed' NETWORK_OPTIONS.USER= PORTS=
+	${MAKE} $(basename $@).ssh.connect SSH_CONNECT_CMD="--sealed ssh sudo env $(if ${http_proxy},http_proxy=${http_proxy}) sh -s ${UBUNTU_CLEANUP_TARGET}" <ubuntu/cleanup.sh
+	${MAKE} $(basename $@).ssh.stop
