@@ -167,6 +167,8 @@ jobs:
         ./kvm_ssh ssh ls -al /mnt
         ./kvm_ssh ssh uname -a
         ./kvm_ssh ssh df -h
+        ok=$(echo echo OK|make --silent ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.connect)
+        test OK = "$ok"
     - name: kvm.ssh.env
       run: |
         set -x
