@@ -7,7 +7,7 @@ KVM=$(shell gid=$$(getent group kvm 2>/dev/null|cut -f 3 -d:);test -n $$gid && e
 WORKSPACE=${CURDIR}
 WORKSPACE_ROOT=${CURDIR}
 TERMINAL=$(shell test -t 0 && echo t)
-DATA_DIR?=${WORKSPACE}/data
+DATA_DIR?=$(if $(filter ${WORKSPACE},${CURDIR}),,${WORKSPACE}/)data
 DOCKER_NAMESPACE?=${USER}
 
 image=${DOCKER_NAMESPACE}/kvm_image
@@ -68,13 +68,13 @@ ${DATA_DIR}:
 
 kvm_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
-	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
+	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
 
 %.image_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
-	 -v ${DATA_DIR}:${DATA_DIR} --env DATA_DIR\
+	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR\
 	 ${DOCKER_RUN_OPTS}\
 	 $(if ${http_proxy},-e http_proxy=${http_proxy})\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
@@ -106,7 +106,7 @@ ubuntu-autoinstall.cfg:
 %.ssh.start: ${DATA_DIR}
 	rm -f ${DATA_DIR}/ssh_options*
 	docker run --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
-	 -v ${DATA_DIR}:${DATA_DIR} ${DOCKER_RUN_OPTS} --env DATA_DIR\
+	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) ${DOCKER_RUN_OPTS} --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
 	 $(realpath kvm.sh) ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh

@@ -176,6 +176,13 @@ jobs:
         test_ssh=$(echo 'echo $test'|make --quiet ${{ matrix.os }}-${{ matrix.version }}.ssh.connect SSH_CONNECT_ENV=test SSH_CONNECT_CMD='--sealed ssh -o SendEnv=test sh -x')
         test "$test" = "$test_ssh"
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
+    - name: data_dir.default
+      run: |
+        set -x
+        export -n DATA_DIR
+        make ${{ matrix.os }}-${{ matrix.version }}.init
+        make ${{ matrix.os }}-${{ matrix.version }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
   alpine:
     runs-on: ubuntu-latest
     env:
