@@ -135,8 +135,8 @@ ubuntu-autoinstall.cfg:
 	docker exec ${DOCKER_NAMESPACE}_$(basename $@) cat /tmp/qemu.log
 
 %.ssh.stop:
-	docker stop -t 60 ${DOCKER_NAMESPACE}_$(basename $@)
-	docker rm ${DOCKER_NAMESPACE}_$(basename $@)
+	-docker stop -t 60 ${DOCKER_NAMESPACE}_$(basename $@)
+	-docker rm ${DOCKER_NAMESPACE}_$(basename $@)
 
 clean:
 	rm -rf ${DATA_DIR}/img ${DATA_DIR}/var
