@@ -6,6 +6,7 @@ this=$(dirname $(readlink -f $0))
 cmd="init"
 os_ver="ubuntu-20.04"
 data_mnt="/opt/data"
+host_mnt="/mnt"
 data_size="16G"
 swap_size="256M"
 dryrun=''
@@ -43,7 +44,7 @@ while test $# -gt 0; do
             dryrun=1
             ;;
         --data-mnt)
-            data_mnt="/opt/data"
+            data_mnt=$1;shift
             ;;
         --debug)
             set -x
@@ -72,6 +73,9 @@ while test $# -gt 0; do
         --host-data)
             host_data=$1;shift
             ;;
+        --no-host-data)
+            host_data=
+            ;;
         --cpu)
             cpu=$1;shift
             ;;
@@ -98,6 +102,12 @@ mkdir -p $img_dir $var_dir
 boot=${boot:-$img_dir/${os_ver}-boot.img}
 data=${data:-$img_dir/${os_ver}-data.img}
 swap=${swap:-$img_dir/${os_ver}-swap.img}
+if [ "$data_size" = "0" ]; then
+    data=
+fi
+if [ "$swap_size" = "0" ]; then
+    swap=
+fi
 
 do_id() {
     if [ ! -f $id ]; then
@@ -126,10 +136,18 @@ power_state:
 runcmd:
   - |
     set -eux
-    mkdir -p $data_mnt;echo LABEL=KVM-DATA $data_mnt auto defaults 0 2 >>/etc/fstab
-    mkdir -p $data_mnt;echo data_mount /mnt 9p trans=virtio 0 2 >>/etc/fstab
 _YAML_
-    if [ -n "$swap_size" ]; then
+    if [ -n "$host_data" ]; then
+        cat >>$udata <<_YAML_
+    mkdir -p $host_mnt;echo data_mount $host_mnt 9p trans=virtio 0 2 >>/etc/fstab
+_YAML_
+    fi
+    if [ -n "$data" ]; then
+        cat >>$udata <<_YAML_
+    mkdir -p $data_mnt;echo LABEL=KVM-DATA $data_mnt auto defaults 0 2 >>/etc/fstab
+_YAML_
+    fi
+    if [ -n "$swap" ]; then
         cat >>$udata <<_YAML_
     echo LABEL=KVM-SWAP swap swap defaults 0 0 >>/etc/fstab
 _YAML_
@@ -215,8 +233,10 @@ do_qemu() {
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
     -drive if=virtio,format=qcow2,file=$boot \
-    -virtfs local,id=data_dev,path=${host_data},security_model=none,mount_tag=data_mount \
     "
+    if [ -n "$host_data" ]; then
+        qemu_options="$qemu_options -virtfs local,id=data_dev,path=$host_data,security_model=none,mount_tag=data_mount"
+    fi
     if [ -n "$qemu_opts" ]; then
         qemu_options="$qemu_options $(cat $qemu_opts)"
     fi
@@ -296,11 +316,11 @@ CMD
 }
 
 cmd_init() {
-    if [ ! -f $data ]; then
+    if [ -n "$data" -a ! -f "$data" ]; then
         qemu-img create -f qcow2 $data $data_size
         virt-format -a $data --filesystem=ext4 --label=KVM-DATA
     fi
-    if [ -n "$swap_size" -a ! -f $swap ]; then
+    if [ -n "$swap" -a ! -f $swap ]; then
         qemu-img create -f qcow2 $swap $swap_size
         guestfish -a $swap <<_EOF_
         run

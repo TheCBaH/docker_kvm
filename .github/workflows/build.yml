@@ -183,6 +183,16 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.init
         make ${{ matrix.os }}-${{ matrix.version }}.test.boot
         make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
+    - name: standalone.image
+      run: |
+        set -x
+        DATA_DIR=${{ env.DATA_DIR }}.standalone
+        export DATA_DIR
+        KVM_SSH_OPTS="--no-host-data --data-size 0 --swap-size 0"
+        export KVM_SSH_OPTS
+        make ${{ matrix.os }}-${{ matrix.version }}.init
+        make ${{ matrix.os }}-${{ matrix.version }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
   alpine:
     runs-on: ubuntu-latest
     env:
