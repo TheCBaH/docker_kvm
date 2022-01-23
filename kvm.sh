@@ -255,7 +255,7 @@ do_qemu() {
     if [ -n "$dryrun" ]; then
         qemu_options="${qemu_options} -snapshot"
     fi
-    if [ $cmd = "init" -o "$os_ver" = "ubuntu-16.04" ]; then
+    if [ $cmd = "init" -o "$os_ver" = "ubuntu-16.04" -o "$os_ver" = "ubuntu-16.04-server" ]; then
         qemu_options="${qemu_options} -drive if=virtio,read-only=on,driver=vvfat,file=fat:$img_dir/cloud,label=cidata"
     fi
 

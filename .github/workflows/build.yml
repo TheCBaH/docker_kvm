@@ -99,6 +99,7 @@ jobs:
       matrix:
         version: [16.04, 18.04, 20.04]
         os: [ubuntu]
+        flavor: [minimal,server]
     steps:
     - name: checkout
       uses: actions/checkout@v2
@@ -125,28 +126,38 @@ jobs:
       id: cache_base
       with:
         path: ${{ env.DATA_DIR }}/base
-        key: base-${{ matrix.os }}-${{ matrix.version }}-${{ hashFiles('Makefile') }}
+        key: base-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.flavor }}-${{ hashFiles('Makefile') }}
     - uses: actions/cache@v2
       id: cache_img
       with:
         path: ${{ env.DATA_DIR }}/img
-        key: img-${{ matrix.os }}-${{ matrix.version }}-${{ hashFiles('Makefile', 'kvm.sh') }}
+        key: img-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.flavor }}-${{ hashFiles('Makefile', 'kvm.sh') }}
     - name: kvm.init
       if: steps.cache_base.outputs.cache-hit != 'true' || steps.cache_img.outputs.cache-hit != 'true'
       run: |
-        make ${{ matrix.os }}-${{ matrix.version }}.init
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+    - name: kvm.suffix
+      id: suffix
+      run: |
+        set -x
+        suffix=''
+        flavor="${{ matrix.flavor }}"
+        if [ "$flavor" != "minimal" ]; then
+          suffix="-$flavor"
+        fi
+        echo "::set-output name=suffix::$suffix"
     - name: kvm.test.boot
       run: |
-        make ${{ matrix.os }}-${{ matrix.version }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
     - name: kvm.ssh.test
       run: |
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
     - name: kvm.ssh.start
       run: |
         set -x
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTS='--dryrun'
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.start SSH_START_OPTS='--dryrun'
         sleep 10
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.log
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.log
     - name: kvm.ssh
       run: |
         set -x
@@ -165,34 +176,35 @@ jobs:
         test "$test" = "$test_ssh"
     - name: kvm.ssh.stop
       run: |
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.stop
     - name: ssh.connect
       run: |
         set -x
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.start SSH_START_OPTS='--sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.start SSH_START_OPTS='--sealed --dryrun' NETWORK_OPTIONS.USER= PORTS=
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.connect SSH_CONNECT_CMD='--sealed ssh uname -a'
         test=$(git rev-parse HEAD)
         export test
-        test_ssh=$(echo 'echo $test'|make --quiet ${{ matrix.os }}-${{ matrix.version }}.ssh.connect SSH_CONNECT_ENV=test SSH_CONNECT_CMD='--sealed ssh -o SendEnv=test sh -x')
+        test_ssh=$(echo 'echo $test'|make --quiet ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.connect SSH_CONNECT_ENV=test SSH_CONNECT_CMD='--sealed ssh -o SendEnv=test sh -x')
         test "$test" = "$test_ssh"
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.stop
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.stop
     - name: data_dir.default
       run: |
         set -x
         export -n DATA_DIR
-        make ${{ matrix.os }}-${{ matrix.version }}.init
-        make ${{ matrix.os }}-${{ matrix.version }}.test.boot
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
     - name: standalone.image
+      if:  ${{ matrix.flavor == 'minimal' }}
       run: |
         set -x
         DATA_DIR=${{ env.DATA_DIR }}.standalone
         export DATA_DIR
         KVM_SSH_OPTS="--no-host-data --data-size 0 --swap-size 0"
         export KVM_SSH_OPTS
-        make ${{ matrix.os }}-${{ matrix.version }}.init
-        make ${{ matrix.os }}-${{ matrix.version }}.test.boot
-        make ${{ matrix.os }}-${{ matrix.version }}.ssh.test
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
   alpine:
     runs-on: ubuntu-latest
     env:

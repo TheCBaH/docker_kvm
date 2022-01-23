@@ -26,6 +26,12 @@ ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img:
 ${DATA_DIR}/base/ubuntu-16.04-minimal-cloudimg-amd64.img:
 	./kvm.sh download $@ 'https://cloud-images.ubuntu.com/minimal/releases/xenial/release/ubuntu-16.04-minimal-cloudimg-amd64-uefi1.img'
 
+${DATA_DIR}/base/ubuntu-%-server-cloudimg-amd64.img:
+	set -eux;ver=${ubuntu-$*.name};./kvm.sh download $@ "https://cloud-images.ubuntu.com/$$ver/current/$$ver-server-cloudimg-amd64.img"
+
+${DATA_DIR}/base/ubuntu-16.04-server-cloudimg-amd64.img:
+	./kvm.sh download $@ 'https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-uefi1.img'
+
 ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso:
 	./kvm.sh download $@ 'https://releases.ubuntu.com/20.04/$(notdir $@)'
 
@@ -48,9 +54,8 @@ kvm_image:
 %.print:
 	@echo $($(basename $@))
 
-.PRECIOUS: ${DATA_DIR}/base/ubuntu-20.04-minimal-cloudimg-amd64.img
-.PRECIOUS: ${DATA_DIR}/base/ubuntu-18.04-minimal-cloudimg-amd64.img
-.PRECIOUS: ${DATA_DIR}/base/ubuntu-16.04-minimal-cloudimg-amd64.img
+.PRECIOUS: $(foreach v, 20.04 18.04 16.04, ${DATA_DIR}/base/ubuntu-${v}-minimal-cloudimg-amd64.img)
+.PRECIOUS: $(foreach v, 20.04 18.04 16.04, ${DATA_DIR}/base/ubuntu-${v}-server-cloudimg-amd64.img)
 .PRECIOUS: ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso
 
 SSH_PORT=9022
@@ -88,13 +93,22 @@ ubuntu-autoinstall: ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso
 ubuntu-autoinstall.cfg:
 	${MAKE} $(basename $@).image_run CMD='./kvm.sh --debug ${AUTO_INSTALL_OPTS} $(if ${http_proxy},--proxy ${http_proxy}) auto-install-cfg'
 
-%.img: ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img
+%.minimal_img: ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) ${KVM_SSH_OPTS} init'
 
-%.run: ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img
+%.minimal_run: ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) run'
 
-%.init: %.img
+%.minimal_init: %.minimal_img
+	echo OK
+
+%.server_img: ${DATA_DIR}/base/%-server-cloudimg-amd64.img
+	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@)-server --no-host-data --data-size 0 --swap-size 0 ${KVM_SSH_OPTS} init'
+
+%.server_run: ${DATA_DIR}/base/%-server-cloudimg-amd64.img
+	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@)-server run'
+
+%.server_init: %.server_img
 	echo OK
 
 %.ssh.test:
