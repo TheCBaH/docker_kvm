@@ -138,6 +138,12 @@ ubuntu-autoinstall.cfg:
 	-docker stop -t 60 ${DOCKER_NAMESPACE}_$(basename $@)
 	-docker rm ${DOCKER_NAMESPACE}_$(basename $@)
 
+%.ssh:
+	-${MAKE} $(basename $@).ssh.stop
+	${MAKE} $(basename $@).ssh.start SSH_START_OPTS='$(if ${DRYRUN},--dryrun) --sealed' NETWORK_OPTIONS.USER= PORTS=
+	${MAKE} $(basename $@).ssh.connect SSH_CONNECT_CMD="--sealed ssh -t sudo env $(if ${http_proxy},http_proxy=${http_proxy}) $${SHELL}"
+	${MAKE} $(basename $@).ssh.stop
+
 clean:
 	rm -rf ${DATA_DIR}/img ${DATA_DIR}/var
 
