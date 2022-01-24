@@ -166,7 +166,7 @@ _YAML_
     else
         groupadd -g $(id -g) $group
     fi
-    useradd -m -u $(id -u) -g $gid $user;usermod -aG sudo $user
+    useradd --create-home --shell /bin/bash --uid $(id -u) --gid $gid --groups sudo $user
     echo '$user ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/$user
     sed -i 's/\(AcceptEnv\)\s.*$/\1 */' /etc/ssh/sshd_config
     chroot --skip-chdir --userspec=$user:$gid / bash -eux -o pipefail <<_USER_
