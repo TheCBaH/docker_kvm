@@ -56,25 +56,30 @@ _EOF_
 
 }
 
+do_autoupdate () {
+    $apt_remove \
+ cron \
+ popularity-contest \
+ ubuntu-advantage-tools \
+ ubuntu-release-upgrader-core \
+ unattended-upgrades \
+ update-manager-core \
+
+}
+
 do_misc() {
     $apt_remove \
  accountsservice \
  command-not-found \
- cron \
  irqbalance \
  libx11-6 \
  lxcfs \
  lxd-client \
  open-iscsi \
  policykit-1 \
- popularity-contest \
  python3 \
  sound-theme-freedesktop \
  ssh-import-id \
- ubuntu-advantage-tools \
- ubuntu-release-upgrader-core \
- unattended-upgrades \
- update-manager-core \
  vim \
 
     if [ -f /usr/bin/editor ]; then
@@ -164,6 +169,7 @@ do_modules() {
 
 if [ $# -eq 0 ]; then
     apt-get update
+    do_autoupdate
     do_snapd
     do_server
     do_modules
@@ -177,9 +183,10 @@ else
             _update=1
         fi
         case "$cmd" in
+        autoupdate) do_autoupdate;;
         misc) do_misc;;
-        network) do_network;;
         modules) do_modules;;
+        network) do_network;;
         server) do_server;;
         snapd) do_snapd;;
         *)
