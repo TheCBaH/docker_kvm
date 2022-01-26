@@ -167,6 +167,25 @@ do_modules() {
     fi
 }
 
+do_azure () {
+    _images=$(apt list --installed linux-image-\*|cut -d/ -f1)
+    _modules=$(apt list --installed linux-modules-\*|cut -d/ -f1)
+    _headers=$(apt list --installed linux-headers\*|cut -d/ -f1)
+
+    $apt_install linux-azure
+
+    $apt_remove $_images $_modules
+
+    _headers=$(apt list --installed linux-headers\*|cut -d/ -f1)
+    env DEBIAN_FRONTEND=noninteractive apt-get remove -y --purge --quiet $_headers
+
+    if [ -f /etc/network/interfaces.d/eth0 ]; then
+        sed -i "s/$iface/eth0/" /etc/network/interfaces.d/eth0
+    else
+        sed -i "s/$iface/eth0/" /etc/network/interfaces.d/eth0.cfg
+    fi
+}
+
 if [ $# -eq 0 ]; then
     apt-get update
     do_autoupdate
@@ -184,6 +203,7 @@ else
         fi
         case "$cmd" in
         autoupdate) do_autoupdate;;
+        azure) do_azure;;
         misc) do_misc;;
         modules) do_modules;;
         network) do_network;;

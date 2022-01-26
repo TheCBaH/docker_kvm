@@ -158,3 +158,9 @@ alpine-make-vm-image.image: ID_OFFSET=0
 	${MAKE} $(basename $@).ssh.start SSH_START_OPTS='$(if ${DRYRUN},--dryrun) --sealed' NETWORK_OPTIONS.USER= PORTS=
 	${MAKE} $(basename $@).ssh.connect SSH_CONNECT_CMD="--sealed ssh sudo env $(if ${http_proxy},http_proxy=${http_proxy}) sh -s ${UBUNTU_CLEANUP_TARGET}" <ubuntu/cleanup.sh
 	${MAKE} $(basename $@).ssh.stop
+
+%.hyperv_image:
+	${MAKE} $(basename $@).ubuntu_cleanup UBUNTU_CLEANUP_TARGET=azure
+	${MAKE} kvm_run CMD='./compact-qcow.sh ${DATA_DIR}/img/${basename $@}-boot.img'
+	${MAKE} kvm_run CMD='qemu-img convert -p -f qcow2 -O vhdx ${DATA_DIR}/img/${basename $@}-boot.img ${DATA_DIR}/img/${basename $@}-boot.vhdx'
+	zip ${DATA_DIR}/img/${basename $@}-boot.zip ${DATA_DIR}/img/${basename $@}-boot.vhdx

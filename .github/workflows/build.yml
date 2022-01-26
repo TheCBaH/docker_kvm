@@ -213,6 +213,18 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
+    - name: hyperv.image
+      if:  ${{ matrix.flavor == 'server' }}
+      run: |
+        set -x
+        DATA_DIR=${{ env.DATA_DIR }}.hyperv
+        export DATA_DIR
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ubuntu_cleanup
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.hyperv_image
+        ls -alh $DATA_DIR/img
   alpine:
     runs-on: ubuntu-latest
     env:
