@@ -298,7 +298,7 @@ CMD
         fail=1
         if $qemu ${qemu_options:-} \
         -serial stdio \
-        -pidfile /tmp/qemu.pid \
+        -pidfile $pidf \
         -monitor unix:/tmp/qemu.mon,server,nowait \
         $@ ; then
             fail=0
@@ -345,13 +345,26 @@ log=/tmp/qemu.log
 pidf=/tmp/qemu.pid
 
 cmd_start_ssh() {
-    rm -f $pidf /tmp/qemu.mon
+    rm -f $pidf $log /tmp/qemu.mon
     do_qemu background \
      -serial stdio \
-     -pidfile /tmp/qemu.pid \
+     -pidfile $pidf \
      -monitor unix:/tmp/qemu.mon,server,nowait \
 
-    sleep 1
+    count=0
+    tries=5
+    while true; do
+        count=$(($count + 1))
+        sleep 1
+        if [ -f $pidf ]; then
+            break;
+        fi
+        echo "[$count/$tries] qemu is not started yet" >&2
+        if [ $count -ge $tries ]; then
+            echo "Fail to start qemu"
+            exit 1
+        fi
+    done
     pid=$(cat $pidf)
     kill -0 $pid
     fail=1
@@ -376,8 +389,12 @@ cmd_stop_ssh() {
     touch $ssh_flag.done
     rm -f $ssh_flag.started
     rm -f $ssh_flag
-    pid=$(cat $pidf)
     fail=1
+    if [ -f $pidf ]; then
+        pid=$(cat $pidf)
+    else
+        exit $fail
+    fi
     for n in $(seq 120); do
         if [ "$(expr $n % 10 )" -eq 1 ]; then
             socat - UNIX-CONNECT:/tmp/qemu.mon << CMD || true
