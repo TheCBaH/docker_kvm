@@ -9,6 +9,8 @@ data_mnt="/opt/data"
 host_mnt="/mnt"
 data_size="16G"
 swap_size="256M"
+user=$(id -un)
+hostname="kvm-docker-$user"
 dryrun=''
 wait=''
 proxy=''
@@ -86,6 +88,9 @@ while test $# -gt 0; do
             ssh_flag="/tmp/ssh_options"
             sealed=1
             ;;
+        --hostname)
+            hostname=$1;shift
+            ;;
         --*)
             echo "Not supported option '$opt'" 2>&1
             exit 1
@@ -122,8 +127,8 @@ do_cloud() {
     test -f $id.pub
     ID="$(cat $id.pub)"
     cat >$meta <<_YAML_
-instance-id: kvm-docker
-local-hostname: kvm-docker
+instance-id: $hostname
+local-hostname: $hostname
 _YAML_
     cat >$udata <<_YAML_
 #cloud-config
@@ -152,7 +157,6 @@ _YAML_
     echo LABEL=KVM-SWAP swap swap defaults 0 0 >>/etc/fstab
 _YAML_
     fi
-    user=$(id -un)
     group=$(id -gn)
     gid=$(id -g)
     cat >>$udata <<_YAML_
@@ -467,7 +471,7 @@ autoinstall:
   identity:
     username: $user
     password: $password
-    hostname: kvm-docker-$user
+    hostname: $hostname
   late-commands:
     - |
       echo '$user ALL=(ALL) NOPASSWD:ALL' >/target/etc/sudoers.d/$user
