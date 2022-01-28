@@ -23,6 +23,7 @@ if_installed() {
 
 do_network () {
     $apt_install --download-only ifupdown isc-dhcp-client
+    _hostname="$(hostname)"
 
     systemctl disable systemd-resolved.service
     systemctl stop systemd-resolved
@@ -48,6 +49,7 @@ do_network () {
 auto $iface
 iface $iface inet dhcp
 _EOF_
+    echo "127.0.0.1 $_hostname" >>/etc/hosts
 
     ifup $iface
     ip addr show
