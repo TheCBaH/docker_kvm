@@ -383,11 +383,11 @@ cmd_start_ssh() {
     for n in $(seq 120); do
         sleep 1
         if grep -q 'login:' $log; then
-            fail=''
+            fail=0
             break
         fi
     done
-    if [ -n "$fail" ]; then
+    if [ "$fail" -ne 0 ]; then
         kill ${pid:-} || true
         exit $fail
     fi
@@ -417,11 +417,11 @@ CMD
             tail -1 $log
             sleep 1
         else
-            fail=''
-            break;
+            fail=0
+            break
         fi
     done
-    if [ -n "$fail" ]; then
+    if [ "$fail" -ne 0 ]; then
         kill $pid
         wait
         exit $fail
@@ -441,7 +441,7 @@ cmd_ssh() {
         fi
         sleep 5
     done
-    if [ $ssh_fail = 0 ]; then
+    if [ $ssh_fail -eq 0 ]; then
         ssh_fail=1
         if ssh ${SSH_OPTIONS} $@ ; then
             ssh_fail=0
