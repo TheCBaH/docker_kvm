@@ -75,7 +75,7 @@ kvm_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
+	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
 
 %.image_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
@@ -83,7 +83,7 @@ kvm_run: ${DATA_DIR}
 	 ${DOCKER_RUN_OPTS}\
 	 $(if ${http_proxy},-e http_proxy=${http_proxy})\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 ${USERSPEC} ${NETWORK_OPTIONS} $(call image_name, $@) ${CMD}
+	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} $(call image_name, $@) ${CMD}
 
 ubuntu-autoinstall: ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso
 	# --user-data ubuntu-autoinstall-generator/user-data.example --all-in-one
@@ -122,7 +122,7 @@ ubuntu-autoinstall.cfg:
 	docker run --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) ${DOCKER_RUN_OPTS} --env DATA_DIR\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
+	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
 	 $(realpath kvm.sh) ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
 
 %.ssh.connect:
