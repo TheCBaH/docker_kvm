@@ -64,6 +64,7 @@ for n in $(seq 2 6); do
 	sed -Ei "s/^(tty$n)/#\1/" /etc/inittab
 done
 sed -i s/timeout=3/timeout=1/ /etc/update-extlinux.conf
+sed -Ei 's/(default_kernel_opts=").+(")/\1console=ttyS0 console=tty0 nomodeset ipv6.disable=1 rootfstype=ext4\2/' /etc/update-extlinux.conf
 update-extlinux --warn-only
 rc-update add dropbear boot
 
