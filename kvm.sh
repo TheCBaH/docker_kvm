@@ -245,8 +245,16 @@ do_qemu() {
     -nographic \
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
-    -drive if=virtio,format=qcow2,file=$boot \
     "
+    case "$os_ver" in
+    alpine-uefi*)
+        qemu_options="$qemu_options -bios /usr/share/ovmf/OVMF.fd"
+        qemu_options="$qemu_options -hda $boot"
+        ;;
+    *)
+        qemu_options="$qemu_options -drive if=virtio,format=qcow2,file=$boot"
+        ;;
+    esac
     if [ -n "$host_data" ]; then
         qemu_options="$qemu_options -virtfs local,id=data_dev,path=$host_data,security_model=none,mount_tag=data_mount"
     fi

@@ -35,6 +35,19 @@ ${DATA_DIR}/base/ubuntu-16.04-server-cloudimg-amd64.img:
 ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso:
 	./kvm.sh download $@ 'https://releases.ubuntu.com/20.04/$(notdir $@)'
 
+ALPINE_VERSION_MINOR_3.9=6
+ALPINE_VERSION_MINOR_3.10=9
+ALPINE_VERSION_MINOR_3.11=9
+ALPINE_VERSION_MINOR_3.12=9
+ALPINE_VERSION_MINOR_3.13=7
+ALPINE_VERSION_MINOR_3.14=3
+ALPINE_VERSION_MINOR_3.15=0
+
+ALPINE_VERSION_FULL=${ALPINE_VERSION}.${ALPINE_VERSION_MINOR_${ALPINE_VERSION}}
+
+${DATA_DIR}/base/alpine-virt-${ALPINE_VERSION_FULL}-x86_64.iso:
+	./kvm.sh download $@ 'https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/x86_64/$(notdir $@)'
+
 image_name=${DOCKER_NAMESPACE}_$(basename $(1))
 
 kvm_image:
@@ -75,7 +88,8 @@ ${DATA_DIR}:
 kvm_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR --env http_proxy\
-	 ${KVM_OPTIONS} ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
+	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
+	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
 
 %.image_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
@@ -139,7 +153,7 @@ ubuntu-autoinstall.cfg:
 %.ssh:
 	-${MAKE} $(basename $@).ssh.stop
 	${MAKE} $(basename $@).ssh.start SSH_START_OPTS='$(if ${DRYRUN},--dryrun) --sealed' NETWORK_OPTIONS.USER= PORTS=
-	${MAKE} $(basename $@).ssh.connect SSH_CONNECT_CMD="--sealed ssh -t sudo env $(if ${http_proxy},http_proxy=${http_proxy}) $${SHELL}"
+	${MAKE} $(basename $@).ssh.connect SSH_CONNECT_CMD="--sealed ssh -t sudo env $(if ${http_proxy},http_proxy=${http_proxy}) /bin/bash"
 	${MAKE} $(basename $@).ssh.stop
 
 clean:
@@ -162,3 +176,31 @@ alpine-make-vm-image.image: ID_OFFSET=0
 	${MAKE} kvm_run CMD='./compact-qcow.sh ${DATA_DIR}/img/${basename $@}-boot.img'
 	${MAKE} kvm_run CMD='qemu-img convert -p -f qcow2 -O vhdx ${DATA_DIR}/img/${basename $@}-boot.img ${DATA_DIR}/img/${basename $@}-boot.vhdx'
 	zip ${DATA_DIR}/img/${basename $@}-boot.zip ${DATA_DIR}/img/${basename $@}-boot.vhdx
+
+${DATA_DIR}/img/alpine-uefi-${ALPINE_VERSION}-boot.img: ${DATA_DIR}/base/alpine-virt-${ALPINE_VERSION_FULL}-x86_64.iso
+	${MAKE} kvm_run CMD='qemu-img create -f qcow2 $@ 2G'
+	${MAKE} kvm_run CMD='alpine/alpine.py\
+	 --image=data/base/alpine-virt-${ALPINE_VERSION_FULL}-x86_64.iso\
+	 --disk=$@\
+	 --key=${DATA_DIR}/img/id_kvm.pub\
+	 --version=${ALPINE_VERSION}\
+	 --user=${USER}\
+	 --uid=${UID}\
+	 --group=${USER}\
+	 --gid=${GID}\
+	 --uefi=1'
+
+alpine-uefi-${ALPINE_VERSION}.img: ${DATA_DIR}/img/alpine-uefi-${ALPINE_VERSION}-boot.img
+
+alpine-uefi-${ALPINE_VERSION}.vhdx: ${DATA_DIR}/img/alpine-uefi-${ALPINE_VERSION}-boot.img
+	${MAKE} $(basename $@).ssh <alpine/hyperv.sh
+	${MAKE} kvm_run CMD='./compact-qcow.sh $^'
+	${MAKE} kvm_run CMD='qemu-img convert -p -f qcow2 -O vhdx $^ ${DATA_DIR}/img/$@'
+	zip $(basename ${DATA_DIR}/img/$@).zip ${DATA_DIR}/img/$@
+	ls -alh $(basename ${DATA_DIR}/img/$@).zip
+
+alpine-uefi.img: alpine-uefi-${ALPINE_VERSION}.img
+alpine-uefi.vhdx: alpine-uefi-${ALPINE_VERSION}.vhdx
+
+alpine-uefi-%.cleanup:
+	${MAKE} $(basename $@).ssh <alpine/cleanup.sh

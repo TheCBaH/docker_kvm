@@ -23,6 +23,9 @@ RUN set -eux;\
  libguestfs-tools\
  linux-image-kvm\
  openssh-client\
+ ovmf\
+ python3-pexpect\
+ python3\
  qemu-kvm\
  socat\
  sudo\

@@ -297,3 +297,42 @@ jobs:
         name: alpine-${{ matrix.version }}.images
         path: |
           ${{ env.DATA_DIR }}/img
+  alpine-uefi:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_NAMESPACE: github_ci
+      KVM_DISABLE: 'yes'
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [ '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: kvm.image
+      run: |
+        set -x
+        image=$(make image.print)
+        IMAGE_ID=ghcr.io/$GITHUB_REPOSITORY/$image
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+        docker pull $IMAGE_ID || true
+        make kvm_image DOCKER_BUILD_OPTS="--cache-from=$IMAGE_ID"
+    - name: prepare
+      run: make kvm_run CMD='./kvm.sh prepare'
+    - name: alpine.install
+      run: |
+        set -x
+        cat /proc/cpuinfo
+        make alpine-uefi.img ALPINE_VERSION="${{ matrix.version }}"
+        make alpine-uefi-${{ matrix.version }}.test.boot
+    - name: alpine.cleanup
+      run: make alpine-uefi-${{ matrix.version }}.cleanup
+    - name: alpine.test
+      run: |
+        set -x
+        make alpine-uefi-${{ matrix.version }}.ssh.test
+        echo 'lsmod' | make alpine-uefi-${{ matrix.version }}.ssh
+    - name: alpine.hyperv
+      run: |
+        set -x
+        make alpine-uefi.vhdx ALPINE_VERSION="${{ matrix.version }}"
