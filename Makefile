@@ -64,25 +64,24 @@ PORTS=5900
 
 NETWORK_OPTIONS.USER=--publish ${SSH_PORT}:${SSH_PORT}
 NETWORK_OPTIONS.TAP=--device /dev/net/tun --cap-add NET_ADMIN
+KVM_OPTIONS=$(if $(if ${KVM_DISABLE},,$(realpath /dev/kvm)),--device /dev/kvm)
 
 NETWORK_OPTIONS=$(if $(filter y,${USE_TAP}),${NETWORK_OPTIONS.TAP},${NETWORK_OPTIONS.USER}) $(foreach p,${PORTS},--publish=$p:$p)
-USERSPEC=--user=${UID}:${GID} $(if ${NO_KVM},,$(addprefix --group-add=, kvm sudo))
+USERSPEC=--user=${UID}:${GID} $(if ${KVM_DISABLE},,$(addprefix --group-add=, kvm sudo))
 
 ${DATA_DIR}:
 	mkdir -p $@
 
 kvm_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
-	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR\
-	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
+	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR --env http_proxy\
+	 ${KVM_OPTIONS} ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
 
 %.image_run: ${DATA_DIR}
 	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR\
-	 ${DOCKER_RUN_OPTS}\
+	 ${DOCKER_RUN_OPTS} ${KVM_OPTIONS}\
 	 $(if ${http_proxy},-e http_proxy=${http_proxy})\
-	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} $(call image_name, $@) ${CMD}
 
 ubuntu-autoinstall: ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso
@@ -121,8 +120,7 @@ ubuntu-autoinstall.cfg:
 	rm -f ${DATA_DIR}/ssh_options*
 	docker run --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) ${DOCKER_RUN_OPTS} --env DATA_DIR\
-	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
-	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
+	 ${KVM_OPTIONS} ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
 	 $(realpath kvm.sh) ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
 
 %.ssh.connect:

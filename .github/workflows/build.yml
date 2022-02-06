@@ -13,6 +13,7 @@ jobs:
     env:
       DATA_DIR: /tmp/docker_kvm
       DOCKER_NAMESPACE: github_ci
+      KVM_DISABLE: 'yes'
     steps:
     - name: checkout
       uses: actions/checkout@v2
@@ -22,8 +23,8 @@ jobs:
       run: |
         set -x
         make ubuntu-autoinstall.image
-        make NO_KVM=y ubuntu-autoinstall.cfg
-        make NO_KVM=y ubuntu-autoinstall
+        make ubuntu-autoinstall.cfg
+        make ubuntu-autoinstall
     - name: kvm.image
       run: |
         set -x
@@ -94,6 +95,7 @@ jobs:
     env:
       DATA_DIR: /tmp/docker_kvm
       DOCKER_NAMESPACE: github_ci
+      KVM_DISABLE: 'yes'
     strategy:
       fail-fast: false
       matrix:
@@ -230,6 +232,7 @@ jobs:
     env:
       DATA_DIR: /tmp/docker_kvm
       DOCKER_NAMESPACE: github_ci
+      KVM_DISABLE: 'yes'
     strategy:
       fail-fast: false
       matrix:
