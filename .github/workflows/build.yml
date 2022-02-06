@@ -9,6 +9,7 @@ on:
 
 jobs:
   live-server:
+    if: false
     runs-on: ubuntu-latest
     env:
       DATA_DIR: /tmp/docker_kvm
