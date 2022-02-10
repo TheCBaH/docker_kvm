@@ -141,6 +141,7 @@ power_state:
 runcmd:
   - |
     set -eux
+    env DEBIAN_FRONTEND=noninteractive apt-get autoremove -y --purge --quiet unattended-upgrades
 _YAML_
     if [ -n "$host_data" ]; then
         cat >>$udata <<_YAML_
