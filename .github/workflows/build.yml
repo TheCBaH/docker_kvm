@@ -335,4 +335,5 @@ jobs:
     - name: alpine.hyperv
       run: |
         set -x
+        make alpine-uefi-${{ matrix.version }}.ssh <alpine/vscode.sh
         make alpine-uefi.vhdx ALPINE_VERSION="${{ matrix.version }}"
