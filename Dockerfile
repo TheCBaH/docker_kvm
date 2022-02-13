@@ -7,12 +7,17 @@ RUN set -eux; \
     group=$(echo ${USERINFO}|cut -f3 -d:);\
     group=$user;\
     gid=$(echo ${USERINFO}|cut -f4 -d:);\
-    kvm_gid=$(echo ${USERINFO}|cut -f5 -d:);\
     groupadd -g $gid $group;\
+    kvm_gid=$(echo ${USERINFO}|cut -f5 -d:);\
     if [ -z "$kvm_gid" ]; then\
         kvm_gid=$(expr $gid + 1);\
     fi;\
-    groupadd -g $kvm_gid kvm;\
+    old_group=$(getent group $kvm_gid|cut -d: -f1);\
+    if [ -z "$old_group" ]; then\
+        groupadd -g $kvm_gid kvm;\
+    else\
+        groupmod --new-name kvm $old_group;\
+    fi;\
     useradd -m -u $uid -g $gid $user;\
     usermod -aG sudo $user;\
     usermod -aG kvm $user;\
