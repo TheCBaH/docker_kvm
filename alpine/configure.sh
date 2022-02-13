@@ -49,7 +49,6 @@ step 'Remove extra files'
 	esac
 )
 rm -rf\
- /lib/modules/*/kernel/arch/x86/kvm \
  /lib/modules/*/kernel/drivers/md \
  /lib/modules/*/kernel/drivers/scsi \
  /lib/modules/4.19.118-0-virt/kernel/fs/btrfs \

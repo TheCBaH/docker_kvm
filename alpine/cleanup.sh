@@ -16,7 +16,6 @@ set -eux
 	esac
 )
 rm -rf\
- /lib/modules/*/kernel/arch/x86/kvm \
  /lib/modules/*/kernel/drivers/md \
  /lib/modules/*/kernel/drivers/scsi \
  /lib/modules/*/kernel/drivers/usb \
