@@ -33,7 +33,7 @@ def qemu(
     ]
     args = boot_disk + [
         '-no-reboot',
-        '-m', '2G',
+        '-m', '1G',
         '-nographic',
     ]
     if uefi:
