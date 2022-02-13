@@ -28,13 +28,13 @@ rm -rf\
 
 echo 'Update boot'
 for n in $(seq 2 6); do
-	sed -Ei "s/^(tty$n)/#\1/" /etc/inittab
+	sed -i -E "s/^(tty$n)/#\1/" /etc/inittab
 done
 echo 'Disable IPV6'
 echo 'net.ipv6.conf.all.disable_ipv6 = 1' >>  /etc/sysctl.conf
 
-sed -iE 's/(GRUB_TIMEOUT=)./\11/' /etc/default/grub
-sed -iE 's#(GRUB_CMDLINE_LINUX_DEFAULT=.+)quiet(.+)#\1console=tty0 console=/dev/ttyS0 nomodeset\2#' /etc/default/grub
+sed -i -E 's/(GRUB_TIMEOUT=)./\11/' /etc/default/grub
+sed -i -E 's#(GRUB_CMDLINE_LINUX_DEFAULT=.+)quiet(.+)#\1console=tty0 console=/dev/ttyS0 nomodeset\2#' /etc/default/grub
 grub-mkconfig -o /boot/grub/grub.cfg
 for d in \
  aesni_intel\
