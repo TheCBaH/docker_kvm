@@ -355,7 +355,7 @@ _EOF_
         cd $img_dir
         rm -f $base_image_name
         ln -s $(realpath --relative-to=. $base_image_abs) $base_image_name
-        qemu-img create -f qcow2 -b $base_image_name $(basename $boot)
+        qemu-img create -f qcow2 -F qcow2 -b $base_image_name $(basename $boot)
     )
     do_id
     do_cloud
