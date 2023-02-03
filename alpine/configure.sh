@@ -76,7 +76,12 @@ uid=$1;shift
 group=$1;shift
 gid=$1;shift
 key=$1;shift
-addgroup -g $gid $group
+name=$(getent group $gid | cut -d: -f1)
+if [ -z "$name" ]; then
+	addgroup -g $gid $group
+else
+	group="$name"
+fi
 adduser -u $uid -G $group -D $user
 addgroup sudo
 addgroup $user sudo
