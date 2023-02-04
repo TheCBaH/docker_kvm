@@ -17,7 +17,7 @@ jobs:
       KVM_DISABLE: 'yes'
     steps:
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         submodules: true
     - name: autoinstall.image
@@ -84,7 +84,7 @@ jobs:
         test "$test" = "$test_ssh"
         make ubuntu-live-20.04.ssh.stop
     - name: failed-images
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: false && failure()
       with:
         name: ubuntu-autoinstal
@@ -105,7 +105,7 @@ jobs:
         flavor: [minimal,server]
     steps:
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: kvm.image
       run: |
         set -x
@@ -125,12 +125,12 @@ jobs:
           rm -rf ~/.docker
         fi
         make kvm_run CMD='bash -ceux "id"'
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       id: cache_base
       with:
         path: ${{ env.DATA_DIR }}/base
         key: base-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.flavor }}-${{ hashFiles('Makefile') }}
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       id: cache_img
       with:
         path: ${{ env.DATA_DIR }}/img
@@ -240,7 +240,7 @@ jobs:
         version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         submodules: true
     - name: kvm.image
@@ -293,7 +293,7 @@ jobs:
     - name: kernel
       run: make kvm_run CMD='alpine/copy-kernel.sh ${{ matrix.version }}'
     - name: alpine-images
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: alpine-${{ matrix.version }}.images
         path: |
@@ -309,7 +309,7 @@ jobs:
         version: [ '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: kvm.image
       run: |
         set -x
