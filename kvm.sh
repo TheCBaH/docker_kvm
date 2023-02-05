@@ -116,7 +116,7 @@ fi
 
 do_id() {
     if [ ! -f $id ]; then
-        ssh-keygen -f $id -P ''
+        ssh-keygen -t ecdsa -f $id -P ''
     fi
 }
 
