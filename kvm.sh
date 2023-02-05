@@ -338,11 +338,11 @@ CMD
 
 cmd_init() {
     if [ -n "$data" -a ! -f "$data" ]; then
-        qemu-img create -f qcow2 $data $data_size
+        qemu-img create -f qcow2 -o compression_type=zstd $data $data_size
         virt-format -a $data --filesystem=ext4 --label=KVM-DATA
     fi
     if [ -n "$swap" -a ! -f $swap ]; then
-        qemu-img create -f qcow2 $swap $swap_size
+        qemu-img create -f qcow2 -o compression_type=zstd $swap $swap_size
         guestfish -a $swap <<_EOF_
         run
         mkswap-L KVM-SWAP /dev/sda
@@ -355,7 +355,7 @@ _EOF_
         cd $img_dir
         rm -f $base_image_name
         ln -s $(realpath --relative-to=. $base_image_abs) $base_image_name
-        qemu-img create -f qcow2 -F qcow2 -b $base_image_name $(basename $boot)
+        qemu-img create -f qcow2 -F qcow2 -o compression_type=zstd -b $base_image_name $(basename $boot)
     )
     do_id
     do_cloud
@@ -514,7 +514,7 @@ do_auto_install() {
     cd=$img_dir/ubuntu-20.04.3-live-server-amd64-autoinstall.iso
     rootfs="$img_dir/${os_ver}-rootfs.img"
     rm -rf $rootfs
-    test -f $rootfs || qemu-img create -f qcow2 $rootfs 100G
+    test -f $rootfs || qemu-img create -f qcow2 -o compression_type=zstd  $rootfs 100G
     qemu_options="
     -m $memory \
     -cdrom $cd \
