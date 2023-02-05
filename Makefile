@@ -204,3 +204,9 @@ alpine-uefi.vhdx: alpine-uefi-${ALPINE_VERSION}.vhdx
 
 alpine-uefi-%.cleanup:
 	${MAKE} $(basename $@).ssh <alpine/cleanup.sh
+
+parse.actions.kvm:
+	${MAKE} kvm_run CMD='${MAKE} $(basename $@)'
+
+parse.actions:
+	python3 -c 'import yaml;import sys;print(yaml.safe_load(sys.stdin))' <.github/workflows/build.yml

@@ -251,6 +251,11 @@ jobs:
         IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
         docker pull $IMAGE_ID || true
         make kvm_image DOCKER_BUILD_OPTS="--cache-from=$IMAGE_ID"
+    - name: parse.actions
+      run: |
+        set -x
+        make parse.actions
+        make parse.actions.kvm
     - name: prepare
       run: make kvm_run CMD='./kvm.sh prepare'
     - name: alpine.image

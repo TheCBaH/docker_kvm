@@ -27,9 +27,11 @@ RUN set -eux;\
     env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends\
  libguestfs-tools\
  linux-image-kvm\
+ make\
  openssh-client\
  ovmf\
  python3-pexpect\
+ python3-yaml\
  python3\
  qemu-kvm\
  socat\
