@@ -69,6 +69,13 @@ do_autoupdate () {
 
 }
 
+do_apt_remove() {
+    _pkgs=$(apt list --installed "$1" 2>/dev/null | awk -F'/' 'NR>1{print $1}')
+    if [ -n "$_pkgs" ]; then
+        $apt_remove $_pkgs
+    fi
+}
+
 do_misc() {
     $apt_remove \
  accountsservice \
@@ -76,7 +83,6 @@ do_misc() {
  irqbalance \
  libx11-6 \
  lxcfs \
- lxd-client \
  open-iscsi \
  policykit-1 \
  python3 \
@@ -87,7 +93,7 @@ do_misc() {
     if [ -f /usr/bin/editor ]; then
         update-alternatives --install /usr/bin/editor editor /usr/bin/vim.tiny 99
     fi
-
+    do_apt_remove lxd-client
 }
 
 do_server () {
@@ -133,14 +139,11 @@ do_snapd() {
             done <$_tmp
         fi
         rm -rf /var/cache/snapd/
+        do_apt_remove gnome-software-plugin-snap
         $apt_remove snapd
-        _pkg=gnome-software-plugin-snap
+        apt-mark hold snapd
         rm -f $_tmp
         trap - EXIT
-        if if_installed $_pkg; then
-            $apt_remove $_pkg
-        fi
-        apt-mark hold snapd
     fi
 }
 

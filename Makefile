@@ -16,6 +16,7 @@ export DATA_DIR
 .SUFFIXES:
 MAKEFLAGS += --no-builtin-rules
 
+ubuntu-22.04.name=jammy
 ubuntu-20.04.name=focal
 ubuntu-18.04.name=bionic
 ubuntu-16.04.name=xenial
@@ -69,8 +70,8 @@ kvm_image:
 %.print:
 	@echo $($(basename $@))
 
-.PRECIOUS: $(foreach v, 20.04 18.04 16.04, ${DATA_DIR}/base/ubuntu-${v}-minimal-cloudimg-amd64.img)
-.PRECIOUS: $(foreach v, 20.04 18.04 16.04, ${DATA_DIR}/base/ubuntu-${v}-server-cloudimg-amd64.img)
+.PRECIOUS: $(foreach v, 22.04 20.04 18.04 16.04, ${DATA_DIR}/base/ubuntu-${v}-minimal-cloudimg-amd64.img)
+.PRECIOUS: $(foreach v, 22.04 20.04 18.04 16.04, ${DATA_DIR}/base/ubuntu-${v}-server-cloudimg-amd64.img)
 .PRECIOUS: ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso
 
 SSH_PORT=9022
