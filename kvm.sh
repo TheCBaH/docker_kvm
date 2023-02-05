@@ -569,7 +569,7 @@ case "$cmd" in
         file=$1
         url=$2
         mkdir -p $(dirname $file) $base_dir
-        if wget -O "$file.tmp" "$2" ; then
+        if wget --progress=dot:giga -O "$file.tmp" "$2" ; then
             mv "$file.tmp" "$file"
             cat >>$base_dir/images <<CMD
 $(basename $file) $(md5sum "$file"|cut -f1 -d ' ') $url
