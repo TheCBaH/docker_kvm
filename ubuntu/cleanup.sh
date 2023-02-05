@@ -79,7 +79,9 @@ do_apt_remove() {
 do_misc() {
     $apt_remove \
  accountsservice \
+ btrfs-progs \
  command-not-found \
+ curl \
  irqbalance \
  libx11-6 \
  lxcfs \
@@ -89,10 +91,13 @@ do_misc() {
  sound-theme-freedesktop \
  ssh-import-id \
  vim \
-
+ ;
     if [ -f /usr/bin/editor ]; then
         update-alternatives --install /usr/bin/editor editor /usr/bin/vim.tiny 99
     fi
+    do_apt_remove 'cryptsetup*'
+    do_apt_remove 'linux-headers-*'
+    do_apt_remove 'tcl*'
     do_apt_remove lxd-client
 }
 
