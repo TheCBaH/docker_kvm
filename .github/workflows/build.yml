@@ -148,7 +148,7 @@ jobs:
         if [ "$flavor" != "minimal" ]; then
           suffix="-$flavor"
         fi
-        echo "::set-output name=suffix::$suffix"
+        echo "suffix=$suffix" >> $GITHUB_OUTPUT
     - name: kvm.test.boot
       run: |
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
