@@ -195,6 +195,8 @@ jobs:
     - name: data_dir.default
       run: |
         set -x
+        mkdir data
+        cp -rvl $DATA_DIR/base data
         export -n DATA_DIR
         make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
@@ -209,6 +211,8 @@ jobs:
       if:  ${{ matrix.flavor == 'minimal' }}
       run: |
         set -x
+        mkdir ${{ env.DATA_DIR }}.standalone
+        cp -rvl $DATA_DIR/base ${{ env.DATA_DIR }}.standalone
         DATA_DIR=${{ env.DATA_DIR }}.standalone
         export DATA_DIR
         KVM_SSH_OPTS="--no-host-data --data-size 0 --swap-size 0"
@@ -220,6 +224,8 @@ jobs:
       if:  ${{ matrix.flavor == 'server' }}
       run: |
         set -x
+        mkdir ${{ env.DATA_DIR }}.hyperv
+        cp -rl $DATA_DIR/base ${{ env.DATA_DIR }}.hyperv
         DATA_DIR=${{ env.DATA_DIR }}.hyperv
         export DATA_DIR
         make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
