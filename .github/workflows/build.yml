@@ -201,6 +201,19 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
+    - name: large_root.image
+      if:  ${{ matrix.flavor == 'minimal' }}
+      run: |
+        set -x
+        mkdir ${{ env.DATA_DIR }}.large_root
+        cp -rvl $DATA_DIR/base ${{ env.DATA_DIR }}.large_root
+        DATA_DIR=${{ env.DATA_DIR }}.large_root
+        export DATA_DIR
+        KVM_SSH_OPTS="--root-size 20G"
+        export KVM_SSH_OPTS
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test SSH_TEST_CMD='df -h'
     - name: cleanup
       run: |
         set -x

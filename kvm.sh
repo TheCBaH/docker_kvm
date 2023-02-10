@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 set -o pipefail
-#set -x
+set -x
 this=$(dirname $(readlink -f $0))
 cmd="init"
 os_ver="ubuntu-20.04"
@@ -9,6 +9,7 @@ data_mnt="/opt/data"
 host_mnt="/mnt"
 data_size="16G"
 swap_size="256M"
+root_size=''
 user=$(id -un)
 hostname="kvm-docker-$user"
 dryrun=''
@@ -35,6 +36,9 @@ while test $# -gt 0; do
             ;;
         --data-size)
             data_size=$1;shift
+            ;;
+        --root-size)
+            root_size=$1;shift
             ;;
         --swap-size)
             swap_size=$1;shift
@@ -348,15 +352,28 @@ cmd_init() {
         mkswap-L KVM-SWAP /dev/sda
 _EOF_
     fi
-    base_image_abs=$(readlink -f $base_image)
+    base_image_abs=$(readlink -e $base_image)
     base_image_name=$(basename $base_image)
     cp $base_dir/images $img_dir
-    (
+    rm -f $img_dir/$base_image_name
+    if [ -z "$root_size" ]; then (
         cd $img_dir
-        rm -f $base_image_name
         ln -s $(realpath --relative-to=. $base_image_abs) $base_image_name
         qemu-img create -f qcow2 -F qcow2 -o compression_type=zstd -b $base_image_name $(basename $boot)
-    )
+    ) else
+        if true; then
+            qemu-img create -f qcow2 -o compression_type=zstd $boot $root_size
+            virt-resize --expand /dev/sda1 $base_image_abs $boot
+            guestfish -a $boot <<_EOF_
+             run
+             mount /dev/sda3 /
+             sh "grub-install /dev/sda"
+_EOF_
+        else
+            cp $base_image_abs $boot
+            qemu-img resize $boot $root_size
+        fi
+    fi
     do_id
     do_cloud
     do_qemu foreground

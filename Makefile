@@ -128,7 +128,7 @@ ubuntu-autoinstall.cfg:
 	echo OK
 
 %.ssh.test:
-	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ssh id'
+	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ssh $(or ${SSH_TEST_CMD}, id)'
 
 %.test.boot:
 	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun test'
