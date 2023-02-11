@@ -27,12 +27,16 @@ id=$data_dir/img/id_kvm
 ssh_flag=$var_dir/ssh_options
 sealed=''
 qemu_opts=''
+image_compression=''
 
 while test $# -gt 0; do
     opt="$1";shift;
     case "$opt" in
         --os)
             os_ver=$1;shift
+            ;;
+        --compression)
+            image_compression=$1;shift
             ;;
         --data-size)
             data_size=$1;shift
@@ -342,11 +346,11 @@ CMD
 
 cmd_init() {
     if [ -n "$data" -a ! -f "$data" ]; then
-        qemu-img create -f qcow2 -o compression_type=zstd $data $data_size
+        qemu-img create -f qcow2 ${image_compression:+-o compression_type=$image_compression} $data $data_size
         virt-format -a $data --filesystem=ext4 --label=KVM-DATA
     fi
     if [ -n "$swap" -a ! -f $swap ]; then
-        qemu-img create -f qcow2 -o compression_type=zstd $swap $swap_size
+        qemu-img create -f qcow2 ${image_compression:+-o compression_type=$image_compression} $swap $swap_size
         guestfish -a $swap <<_EOF_
         run
         mkswap-L KVM-SWAP /dev/sda
@@ -359,10 +363,10 @@ _EOF_
     if [ -z "$root_size" ]; then (
         cd $img_dir
         ln -s $(realpath --relative-to=. $base_image_abs) $base_image_name
-        qemu-img create -f qcow2 -F qcow2 -o compression_type=zstd -b $base_image_name $(basename $boot)
+        qemu-img create -f qcow2 -F qcow2 ${image_compression:+-o compression_type=$image_compression} -b $base_image_name $(basename $boot)
     ) else
         if true; then
-            qemu-img create -f qcow2 -o compression_type=zstd $boot $root_size
+            qemu-img create -f qcow2 ${image_compression:+-o compression_type=$image_compression} $boot $root_size
             virt-resize --expand /dev/sda1 $base_image_abs $boot
             guestfish -a $boot <<_EOF_
              run
@@ -531,7 +535,7 @@ do_auto_install() {
     cd=$img_dir/ubuntu-20.04.3-live-server-amd64-autoinstall.iso
     rootfs="$img_dir/${os_ver}-rootfs.img"
     rm -rf $rootfs
-    test -f $rootfs || qemu-img create -f qcow2 -o compression_type=zstd  $rootfs 100G
+    test -f $rootfs || qemu-img create -f qcow2 ${image_compression:+-o compression_type=$image_compression} $rootfs 100G
     qemu_options="
     -m $memory \
     -cdrom $cd \
