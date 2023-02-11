@@ -109,6 +109,7 @@ jobs:
     - name: kvm.image
       run: |
         set -x
+        cat /proc/cpuinfo
         image=$(make image.print)
         IMAGE_ID=ghcr.io/$GITHUB_REPOSITORY/$image
         IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
@@ -241,11 +242,19 @@ jobs:
         cp -rvl $DATA_DIR/base ${{ env.DATA_DIR }}.compression.zstd
         DATA_DIR=${{ env.DATA_DIR }}.compression.zstd
         export DATA_DIR
-        KVM_SSH_OPTS="--no-host-data --data-size 0 --swap-size 0"
-        export KVM_SSH_OPTS
         make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init KVM_SSH_OPTS='--compression zstd'
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
+    - name: cpu.type
+      if:  ${{ matrix.flavor == 'minimal' }}
+      run: |
+        set -x
+        mkdir ${{ env.DATA_DIR }}.cpu.type
+        cp -rvl $DATA_DIR/base ${{ env.DATA_DIR }}.cpu.type
+        export DATA_DIR=${{ env.DATA_DIR }}.cpu.type
+        export KVM_SSH_OPTS='--cpu-type Conroe'
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test SSH_TEST_CMD='grep -w Conroe /proc/cpuinfo'
     - name: ubuntu.18.04
       if:  ${{ matrix.flavor == 'minimal' }}
       run: |
@@ -392,6 +401,7 @@ jobs:
     - name: kvm.image
       run: |
         set -x
+        cat /proc/cpuinfo
         image=$(make image.print)
         IMAGE_ID=ghcr.io/$GITHUB_REPOSITORY/$image
         IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
@@ -402,7 +412,6 @@ jobs:
     - name: alpine.install
       run: |
         set -x
-        cat /proc/cpuinfo
         make alpine-uefi.img ALPINE_VERSION="${{ matrix.version }}"
         make alpine-uefi-${{ matrix.version }}.test.boot
     - name: alpine.cleanup

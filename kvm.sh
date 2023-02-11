@@ -17,6 +17,7 @@ wait=''
 proxy=''
 memory=1G
 cpu=2
+cpu_type=''
 port=8022
 data_dir=${DATA_DIR:-$this/data}
 host_data=$data_dir
@@ -89,7 +90,10 @@ while test $# -gt 0; do
         --cpu)
             cpu=$1;shift
             ;;
-        --memory)
+        --cpu-type)
+            cpu_type=$1;shift
+            ;;
+         --memory)
             memory=$1;shift
             ;;
         --sealed)
@@ -249,7 +253,7 @@ do_qemu() {
     qemu=$(which qemu-system-x86_64)
     qemu_options="
     -m $memory \
-    -smp $cpu \
+    -smp $cpu ${cpu_type:+-cpu $cpu_type}\
     -nographic \
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
@@ -539,7 +543,7 @@ do_auto_install() {
     qemu_options="
     -m $memory \
     -cdrom $cd \
-    -smp $cpu \
+    -smp $cpu ${cpu_type:+-cpu $cpu_type}\
     -no-reboot \
     -device virtio-net-pci,netdev=net0 \
     -drive if=virtio,format=qcow2,file=$rootfs \

@@ -113,7 +113,7 @@ ubuntu-autoinstall.cfg:
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) ${KVM_SSH_OPTS} init'
 
 %.minimal_run: ${DATA_DIR}/base/%-minimal-cloudimg-amd64.img
-	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) run'
+	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@) ${KVM_SSH_OPTS} run'
 
 %.minimal_init: %.minimal_img
 	echo OK
@@ -122,23 +122,23 @@ ubuntu-autoinstall.cfg:
 	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@)-server --no-host-data --data-size 0 --swap-size 0 ${KVM_SSH_OPTS} init'
 
 %.server_run: ${DATA_DIR}/base/%-server-cloudimg-amd64.img
-	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@)-server run'
+	${MAKE} kvm_run CMD='./kvm.sh --base-image $^ --os $(basename $@)-server ${KVM_SSH_OPTS} run'
 
 %.server_init: %.server_img
 	echo OK
 
 %.ssh.test:
-	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ssh $(or ${SSH_TEST_CMD}, id)'
+	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ${KVM_SSH_OPTS} ssh $(or ${SSH_TEST_CMD}, id)'
 
 %.test.boot:
-	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun test'
+	${MAKE} kvm_run USE_TAP=n CMD='./kvm.sh --debug --os $(basename $(basename $@)) --dryrun ${KVM_SSH_OPTS} test'
 
 %.ssh.start: ${DATA_DIR}
 	rm -f ${DATA_DIR}/ssh_options*
 	docker run --init --detach --name ${DOCKER_NAMESPACE}_$(basename $@) -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
 	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) ${DOCKER_RUN_OPTS} --env DATA_DIR\
 	 ${KVM_OPTIONS} ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image}\
-	 $(realpath kvm.sh) ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
+	 $(realpath kvm.sh) ${KVM_SSH_OPTS} ${SSH_START_OPTS} --os $(basename $(basename $@)) --port ${SSH_PORT} --wait start_ssh
 
 %.ssh.connect:
 	docker exec -i${TERMINAL} $(addprefix --env , ${SSH_CONNECT_ENV}) --env DATA_DIR ${DOCKER_NAMESPACE}_$(basename $@) ./kvm_ssh $(or ${SSH_CONNECT_CMD},ssh -t '$$SHELL')
