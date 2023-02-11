@@ -55,7 +55,7 @@ image_name=${DOCKER_NAMESPACE}_$(basename $(1))
 
 kvm_image:
 	docker build --tag ${image} ${DOCKER_BUILD_OPTS} -f Dockerfile\
-	 --build-arg OS_VER=latest\
+	 --build-arg OS_VER=$(or ${UBUNTU_VERSION},latest)\
 	 --build-arg USERINFO=${USER}:${UID}:${GROUP}:${GID}:${KVM}\
 	 --build-arg http_proxy\
 	 .

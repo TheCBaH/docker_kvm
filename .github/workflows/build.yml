@@ -246,6 +246,30 @@ jobs:
         make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init KVM_SSH_OPTS='--compression zstd'
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
         make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
+    - name: ubuntu.18.04
+      if:  ${{ matrix.flavor == 'minimal' }}
+      run: |
+        set -x
+        mkdir ${{ env.DATA_DIR }}.ubuntu.18.04
+        cp -rvl $DATA_DIR/base ${{ env.DATA_DIR }}.ubuntu.18.04
+        DATA_DIR=${{ env.DATA_DIR }}.ubuntu.18.04
+        export DATA_DIR
+        make kvm_image UBUNTU_VERSION=18.04
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
+    - name: ubuntu.20.04
+      if:  ${{ matrix.flavor == 'minimal' }}
+      run: |
+        set -x
+        mkdir ${{ env.DATA_DIR }}.ubuntu.20.04
+        cp -rvl $DATA_DIR/base ${{ env.DATA_DIR }}.ubuntu.20.04
+        DATA_DIR=${{ env.DATA_DIR }}.ubuntu.20.04
+        export DATA_DIR
+        make kvm_image UBUNTU_VERSION=20.04
+        make ${{ matrix.os }}-${{ matrix.version }}.${{ matrix.flavor }}_init
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.test.boot
+        make ${{ matrix.os }}-${{ matrix.version }}${{ steps.suffix.outputs.suffix }}.ssh.test
     - name: hyperv.image
       if:  ${{ matrix.flavor == 'server' }}
       run: |
