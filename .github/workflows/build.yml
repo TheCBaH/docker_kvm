@@ -426,3 +426,15 @@ jobs:
         set -x
         make alpine-uefi-${{ matrix.version }}.ssh <alpine/vscode.sh
         make alpine-uefi.vhdx ALPINE_VERSION="${{ matrix.version }}"
+  devcontainers:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+    - name: dev container CI
+      uses: devcontainers/ci@v0.2
+      with:
+        push: never
+        runCmd: make ci-build

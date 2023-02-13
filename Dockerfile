@@ -14,7 +14,6 @@ RUN set -eux; \
     gid=$(echo ${USERINFO}|cut -f4 -d:);\
     groupadd -g $gid $group;\
     kvm_gid=$(echo ${USERINFO}|cut -f5 -d:);\
-    echo $kvm_gid;\
     if [ -z "$kvm_gid" ]; then\
         kvm_gid=$(expr $gid + 1);\
     fi;\
@@ -22,7 +21,7 @@ RUN set -eux; \
     if [ -z "$old_group" ]; then\
         groupadd --system -g $kvm_gid kvm;\
     else\
-        groupmod --new-name kvm $old_group;\
+        groupmod --gid $kvm_gid kvm;\
     fi;\
     useradd -m -u $uid -g $gid $user;\
     usermod -aG sudo $user;\
