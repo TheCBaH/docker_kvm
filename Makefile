@@ -3,7 +3,7 @@ UID=$(shell expr $$(id -u) - ${ID_OFFSET})
 GID=$(shell expr $$(id -g) - ${ID_OFFSET})
 USER=$(shell id -un)
 GROUP=$(shell id -gn)
-KVM=$(shell gid=$$(stat -c %g /dev/kvm);test -n "$$gid" && test 0 -ne "$$gid" && expr $$gid - ${ID_OFFSET})
+KVM=$(shell gid=$$(stat -c %g /dev/kvm 2>/dev/null);test -n "$$gid" && test 0 -ne "$$gid" && expr $$gid - ${ID_OFFSET})
 WORKSPACE=${CURDIR}
 WORKSPACE_ROOT=${CURDIR}
 TERMINAL=$(shell test -t 0 && echo t)
@@ -88,17 +88,18 @@ USERSPEC=--user=${UID}:${GID} $(if ${KVM_DISABLE},,$(addprefix --group-add=, kvm
 ${DATA_DIR}:
 	mkdir -p $@
 
+DOCKER_ARGS=--rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v $(or ${LOCAL_WORKSPACE_FOLDER},${WORKSPACE_ROOT}):${WORKSPACE_ROOT}:ro\
+ -v $(if ${LOCAL_WORKSPACE_FOLDER},${LOCAL_WORKSPACE_FOLDER}/data,$(realpath ${DATA_DIR})):$(realpath ${DATA_DIR}) --env DATA_DIR\
+ --env http_proxy\
+
 kvm_run: ${DATA_DIR}
-	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
-	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR --env http_proxy\
+	docker run ${DOCKER_ARGS}\
 	 $(if $(wildcard /dev/kvm), --device /dev/kvm)\
 	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} ${image} ${CMD}
 
 %.image_run: ${DATA_DIR}
-	docker run --rm --hostname $@ -i${TERMINAL} -w ${WORKSPACE} -v ${WORKSPACE_ROOT}:${WORKSPACE_ROOT}:ro\
-	 -v $(realpath ${DATA_DIR}):$(realpath ${DATA_DIR}) --env DATA_DIR\
+	docker run ${DOCKER_ARGS}\
 	 ${DOCKER_RUN_OPTS} ${KVM_OPTIONS}\
-	 $(if ${http_proxy},-e http_proxy=${http_proxy})\
 	 ${DOCKER_OPTIONS_EXTRA} ${NETWORK_OPTIONS} ${USERSPEC} $(call image_name, $@) ${CMD}
 
 ubuntu-autoinstall: ${DATA_DIR}/base/ubuntu-20.04.3-live-server-amd64.iso
@@ -213,3 +214,18 @@ parse.actions.kvm:
 
 parse.actions:
 	python3 -c 'import yaml;import sys;print(yaml.safe_load(sys.stdin))' <.github/workflows/build.yml
+
+ci-build.ubuntu:
+	${MAKE} ubuntu-18.04.minimal_init
+	${MAKE} ubuntu-18.04.test.boot
+	${MAKE} ubuntu-18.04.ssh.test
+
+ci-build.alpine:
+	${MAKE} alpine-uefi.img ALPINE_VERSION=3.9
+	${MAKE} alpine-uefi-3.9.test.boot
+	${MAKE} alpine-uefi-3.9.ssh.test
+
+ci-build:
+	${MAKE} kvm_image
+	${MAKE} $@.ubuntu
+	${MAKE} $@.alpine
