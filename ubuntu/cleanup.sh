@@ -3,9 +3,24 @@ set -eu
 set -x
 
 apt_install="env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --quiet"
-apt_remove="env DEBIAN_FRONTEND=noninteractive apt-get autoremove -y --purge --quiet"
+apt_remove="with_retry 10 env DEBIAN_FRONTEND=noninteractive apt-get autoremove -y --purge --quiet"
 
 iface=ens3
+
+with_retry() {
+    _n=$1;shift
+    _rc=-1
+    for i in $(seq $_n); do
+        if "$@"; then
+            _rc=0
+            break;
+        else
+            _rc=$?
+        fi
+        sleep $(expr 1 +  $(od -vAn -N1 -tu1 < /dev/urandom) / 10 )
+    done
+    test $_rc -eq 0
+}
 
 if_installed() {
     _tmp_1=$(mktemp -t)
