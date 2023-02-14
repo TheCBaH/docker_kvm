@@ -3,7 +3,7 @@ UID=$(shell expr $$(id -u) - ${ID_OFFSET})
 GID=$(shell expr $$(id -g) - ${ID_OFFSET})
 USER=$(shell id -un)
 GROUP=$(shell id -gn)
-KVM=$(shell gid=$$(stat -c %g /dev/kvm);test -n "$$gid" && expr $$gid - ${ID_OFFSET})
+KVM=$(shell gid=$$(stat -c %g /dev/kvm);test -n "$$gid" && test 0 -ne "$$gid" && expr $$gid - ${ID_OFFSET})
 WORKSPACE=${CURDIR}
 WORKSPACE_ROOT=${CURDIR}
 TERMINAL=$(shell test -t 0 && echo t)
