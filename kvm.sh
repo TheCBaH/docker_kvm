@@ -129,6 +129,7 @@ fi
 do_id() {
     if [ ! -f $id ]; then
         ssh-keygen -t ecdsa -f $id -P ''
+        chmod 600 $id
     fi
 }
 
